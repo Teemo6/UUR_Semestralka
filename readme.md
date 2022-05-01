@@ -1,16 +1,3 @@
-﻿Tento projekt tvoří kostru samostatné práce KIV/UPG 2021/2022. Projekt je k dispozici ke stažení na https://gitlab.kiv.zcu.cz/UPG/Galaxy_UPG_2022.git. 
-
-UPOZORNĚNÍ: projekt se v průběhu semestru může měnit (např. rozšíření datové základny). Studentům je doporučeno, aby pro svou samostatnou práci využili verzovací systém Git, a to tak, že mají dva vzdálené repozitáře: vlastní origin pro FETCH/PULL/PUSH a upstream pro FETCH/PULL vedoucí na https://gitlab.kiv.zcu.cz/UPG/Galaxy_UPG_2022.git a čas od času provedou FETCH/PULL z upstream.
-
-
-Návod pro použití pro úplné začátečníky
----------------------------------------
-1. Spusťte Eclipse a zvolte Workspace mimo tento adresář (můžete použít Workspace, který používáte pro cvičení)
-2. Proveďte import tohoto projektu (File/Import General/Existing Projects into Workspace) - jako root directory vyberte adresář s tímto souborem (adresář obsahuje soubory .project a .classpath)
-3. Vypracujte SP dle běžných zvyklostí, přičemž zdrojové kódy umisťujte do adresáře src (případně podadresářů) - vše se vám bude automaticky překládat do adresáře bin
-4. Před odevzdáním upravte dávkové soubory MakeDoc.cmd, Build.cmd a Run.cmd příslušným způsobem a vyzkoušejte, že fungují a dělají co mají
-5. Celý tento kořenový adresář ZAZIPUJTE a výsledný archiv odevzdejte
-
 Návod pro použití s GIT pro úplné začátečníky
 ---------------------------------------------
 1. Pokud již máte zřízen někde GIT účet umožňující vám zakládat soukromé (private) repozitáře, jděte na krok 3
