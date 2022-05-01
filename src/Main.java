@@ -7,10 +7,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
+import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
@@ -79,17 +76,25 @@ public class Main extends Application {
     }
 
     private Node getBottomControlBar() {
-        HBox mediaControl = new HBox();
+
+        VBox mediaControl = new VBox();
+        HBox timeControl = new HBox();
+        HBox playControl = new HBox();
 
         btnPlay = new Button(">");
         btnPause = new Button("||");
         Button btnPrev = new Button("<-");
         Button btnNext = new Button("->");
-        Slider timeSlider = new Slider();
+        Slider soundSlider = new Slider();
+        Button btnFullscreen = new Button("|=|");
 
+        Slider timeSlider = new Slider();
         Label timeLabel = new Label("Time: ");
 
-        mediaControl.getChildren().addAll(btnPlay, btnPause, timeLabel);
+        timeControl.getChildren().addAll(timeSlider, timeLabel);
+        playControl.getChildren().addAll(btnPlay, btnPause, btnPrev, btnNext, soundSlider, btnFullscreen);
+
+        mediaControl.getChildren().addAll(timeControl, playControl);
 
         mediaControl.setAlignment(Pos.CENTER);
         mediaControl.setPadding(new Insets(5));
