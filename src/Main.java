@@ -1,5 +1,7 @@
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,11 +13,11 @@ import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
-import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
 import java.io.File;
 
@@ -68,12 +70,20 @@ public class Main extends Application {
         rootScene = new Scene(getRootPane());
         rootScene.getStylesheets().add("resources/stylesheet.css");
 
+        KeyCombination cntrlZ = new KeyCodeCombination(KeyCode.SPACE);
+        rootScene.setOnKeyPressed(e -> {
+            if(cntrlZ.match(e)){
+                Controls.playPause(mediaPlayer);
+            }
+        });
+
         rootStage = stage;
         rootStage.setTitle("MediaPlayer");
         rootStage.setScene(rootScene);
         rootStage.setMinWidth(ROOT_WINDOW_MIN_WIDTH);
         rootStage.setMinHeight(ROOT_WINDOW_MIN_HEIGHT);
         rootStage.getIcons().add(new Image("/resources/icon.png"));
+        rootStage.setOnCloseRequest(e -> Platform.exit());
         //rootStage.setFullScreen(true);
 
         rootStage.show();
@@ -85,7 +95,7 @@ public class Main extends Application {
         borderPane.setCenter(getMediaPlayerPane());
         borderPane.setTop(getTopMenuBar());
         borderPane.setBottom(getBottomControlBar());
-        // borderPane.setRight(getPlaylist());
+        borderPane.setRight(getPlaylist());
 
         return borderPane;
     }
@@ -159,7 +169,13 @@ public class Main extends Application {
         VBox playlistWrapper = new VBox();
 
         playlist = new ListView<>(model.mediaQueue.get());
-
+        /*
+        playlist.setCellFactory(e -> {
+            ListCell<String> cell = new ListCell<>();
+            cell.setPrefHeight(20);
+            return cell;
+        });
+*/
         HBox playlistButtonWrapper = new HBox();
 
         HBox playlistMoveWrapper = new HBox();
@@ -221,7 +237,6 @@ public class Main extends Application {
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
         KeyCombination playPauseCombo = new KeyCodeCombination(KeyCode.SPACE);
         playPause.setAccelerator(playPauseCombo);
-        playPause.setOnAction(e -> Controls.playPause(e, mediaPlayer));
 
         MenuItem playForward = new MenuItem("Posun dopředu");
         KeyCombination playForwardCombo = new KeyCodeCombination(KeyCode.RIGHT);
@@ -256,7 +271,7 @@ public class Main extends Application {
         MenuItem playFullscreen = new MenuItem("Celá obrazovka");
         KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
         playFullscreen.setAccelerator(playFullscreenCombo);
-        playFullscreen.setOnAction(Controls::playFullscreen);
+        playFullscreen.setOnAction(e -> Controls.playFullscreen(e, rootStage));
 
         playMenu.getItems().addAll(
                 playPause, playForward, playBackward, new SeparatorMenuItem(),
@@ -269,7 +284,6 @@ public class Main extends Application {
         Menu application = new Menu("O aplikaci");
         Region spacer = new Region();
         Menu hideQueue = new Menu("✎");
-
 
         openRecent.setOnAction(RecentStage::createRecentStage);
         openURL.setOnAction(LoaderStage::createLoaderStage);

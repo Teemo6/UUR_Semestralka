@@ -8,11 +8,13 @@ public class ButtonSVG extends Button {
 
         SVGPath path = new SVGPath();
         path.setContent(svg);
-        path.getStyleClass().add("button-raised");
         path.setStyle("-fx-fill: ORANGE;");
+        path.setScaleX(2);
+        path.setScaleY(2);
+        //path.setRotate(20);
 
         this.setGraphic(path);
         this.setAlignment(Pos.CENTER);
-        this.setStyle("-fx-background-color: #303030; -fx-border-color: ORANGE; -fx-border-width: 1;");
+        this.getStyleClass().add("button");
     }
 }

@@ -3,8 +3,10 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
 import java.io.File;
 
@@ -13,7 +15,7 @@ public class Controls {
     public static boolean isPaused = true;
     DataModel model = new DataModel();
 
-    public static void playPause(ActionEvent e, MediaPlayer mp){
+    public static void playPause(MediaPlayer mp){
         if(isPaused){
             mp.play();
             isPaused = false;
@@ -21,6 +23,10 @@ public class Controls {
             mp.pause();
             isPaused = true;
         }
+    }
+
+    public static void playPause(ActionEvent e, MediaPlayer mp){
+        playPause(mp);
     }
 
 
@@ -47,12 +53,12 @@ public class Controls {
         System.out.println("pev");
     }
 
-    public static void playFullscreen(ActionEvent e){
-        System.out.println("full");
+    public static void playFullscreen(ActionEvent e, Stage fullscreen){
+        fullscreen.setFullScreen(true);
     }
 
-    public static void hideListQueue(ActionEvent e){
-        System.out.println("full");
+    public static void hideListQueue(ActionEvent e, BorderPane pane){
+        pane.setRight(null);
     }
 
     public static void open(){
