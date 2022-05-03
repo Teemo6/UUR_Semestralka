@@ -1,0 +1,136 @@
+.root{
+	-fx-background-color: #101010;
+}
+
+.button{
+	-fx-text-fill: ORANGE; 
+	-fx-background-color: #303030; 
+	-fx-border-color: ORANGE; 
+	-fx-border-width: 1;
+}
+
+.button:hover{
+	-fx-background-color: #101010;
+	-fx-cursor: hand;
+}
+
+.text-field{
+    -fx-background-color: #303030;
+    -fx-border-color: ORANGE;
+    -fx-font-size: 13.0 pt;
+    -fx-text-fill: ORANGE;
+}
+
+.text-area{
+    -fx-background-color: #101010;
+    -fx-font-size: 13.0 pt;
+    -fx-text-fill: ORANGE;
+}
+
+.text-area .content{
+    -fx-background-color: #303030;
+}
+
+.text-area:focused{
+    -fx-border-color: transparent;
+}
+
+.check-box .box {
+    -fx-background-color:#101010;
+    -fx-border-color:ORANGE;
+}
+
+.check-box:hover{
+	-fx-cursor: hand;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: ORANGE;
+}
+
+.label{
+    -fx-font-size: 13.0 pt;
+	-fx-text-fill: ORANGE;
+}
+
+.slider{
+	-fx-shadow-highlight-color: ORANGE; 
+	-fx-control-inner-background: ORANGE; 
+}
+
+.slider .thumb{
+    -fx-background-color: #dfdfdf;
+}
+
+.radio-button .radio {
+    -fx-background-color: #303030
+}
+
+.radio-button:selected .radio .dot {
+    -fx-background-color: ORANGE;
+}
+
+.radio:hover{
+	-fx-cursor: hand;
+}
+
+.menu-bar, .menu-item, .context-menu {
+    -fx-background-color: #101010;
+}
+
+.menu:hover, .menu:showing{
+    -fx-background: #101010 ;
+    -fx-opacity: 0.5;
+    -fx-cursor: hand;
+}
+
+.menu-item:focused{
+    -fx-background-color: #303030;
+    -fx-cursor: hand;
+}
+
+.list-view{
+    -fx-font-size: 13px;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.list-view .split-pane{
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.list-view:focused{
+    -fx-border-color: transparent;
+}
+
+.list-view .scroll-bar:vertical {
+    -fx-background-color:ORANGE;
+}
+
+.list-view .increment-button ,.list-view .decrement-button {
+    -fx-background-color:transparent;
+    -fx-border-color:transparent;
+}
+
+.list-view .scroll-bar:vertical .thumb {
+    -fx-background-color:#455491;
+    -fx-background-insets: 5, 5, 5;
+    -fx-background-radius: 5;
+}
+
+.list-cell:filled:selected:focused, .list-cell:filled:selected {
+    -fx-text-fill: ORANGE;
+}
+
+.list-view .list-cell {
+-fx-text-fill: ORANGE;
+}
+
+.list-cell {
+    -fx-background-color: #101010;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #303030;
+}
