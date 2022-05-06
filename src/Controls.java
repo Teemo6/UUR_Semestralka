@@ -69,4 +69,8 @@ public class Controls {
         menu.addEventHandler(Menu.ON_SHOWN, event -> menu.hide());
         menu.addEventHandler(Menu.ON_SHOWING, event -> menu.fire());
     }
+
+    public static void closeWindow(ActionEvent e, Stage s){
+        s.close();
+    }
 }

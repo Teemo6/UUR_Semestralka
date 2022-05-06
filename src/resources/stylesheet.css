@@ -1,11 +1,13 @@
+@import url("customColor.css");
+
 .root{
 	-fx-background-color: #101010;
 }
 
 .button{
-	-fx-text-fill: ORANGE; 
+	-fx-text-fill: -customColor;
 	-fx-background-color: #303030; 
-	-fx-border-color: ORANGE; 
+	-fx-border-color: -customColor;
 	-fx-border-width: 1;
 }
 
@@ -14,17 +16,21 @@
 	-fx-cursor: hand;
 }
 
+.customButton{
+    -fx-fill: -customColor;
+}
+
 .text-field{
     -fx-background-color: #303030;
-    -fx-border-color: ORANGE;
+    -fx-border-color: -customColor;
     -fx-font-size: 13.0 pt;
-    -fx-text-fill: ORANGE;
+    -fx-text-fill: -customColor;
 }
 
 .text-area{
     -fx-background-color: #101010;
     -fx-font-size: 13.0 pt;
-    -fx-text-fill: ORANGE;
+    -fx-text-fill: -customColor;
 }
 
 .text-area .content{
@@ -37,7 +43,7 @@
 
 .check-box .box {
     -fx-background-color:#101010;
-    -fx-border-color:ORANGE;
+    -fx-border-color: -customColor;
 }
 
 .check-box:hover{
@@ -45,17 +51,17 @@
 }
 
 .check-box:selected .mark {
-    -fx-background-color: ORANGE;
+    -fx-background-color: -customColor;
 }
 
 .label{
     -fx-font-size: 13.0 pt;
-	-fx-text-fill: ORANGE;
+	-fx-text-fill: -customColor;
 }
 
 .slider{
-	-fx-shadow-highlight-color: ORANGE; 
-	-fx-control-inner-background: ORANGE; 
+	-fx-shadow-highlight-color: -customColor;
+	-fx-control-inner-background: -customColor;
 }
 
 .slider .thumb{
@@ -67,7 +73,7 @@
 }
 
 .radio-button:selected .radio .dot {
-    -fx-background-color: ORANGE;
+    -fx-background-color: -customColor;
 }
 
 .radio:hover{
@@ -106,7 +112,7 @@
 }
 
 .list-view .scroll-bar:vertical {
-    -fx-background-color:ORANGE;
+    -fx-background-color: -customColor;
 }
 
 .list-view .increment-button ,.list-view .decrement-button {
@@ -115,18 +121,16 @@
 }
 
 .list-view .scroll-bar:vertical .thumb {
-    -fx-background-color:#455491;
-    -fx-background-insets: 5, 5, 5;
+    -fx-background-insets: 5, 5, 5, 5;
     -fx-background-radius: 5;
 }
 
 .list-cell:filled:selected:focused, .list-cell:filled:selected {
-    -fx-text-fill: ORANGE;
+    -fx-text-fill: -customColor;
 }
 
 .list-cell:filled:selected, .list-view:focused .list-cell:filled:selected{
-    -fx-background-color: #303030;
-    -fx-text-fill:ORANGE;
+    -fx-text-fill:-customColor;
 }
 
 .list-view .list-cell {

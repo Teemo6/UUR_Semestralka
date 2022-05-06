@@ -28,4 +28,8 @@ public class DataModel {
         mediaQueue.add("Solar Opposites Episode 4  The Booster Manifold.mp4");
         mediaQueue.add("Solar Opposites Episode 5  The Lavatic Reactor.mp4");
     }
+
+    public void loadFiles(){
+
+    }
 }

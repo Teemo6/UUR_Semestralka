@@ -46,8 +46,6 @@ public class LoaderStage {
         TextArea loadArea = new TextArea();
         loadArea.setPrefRowCount(16);
         loadArea.setPadding(new Insets(0, 5, 0, 5));
-        loadArea.setStyle("-fx-focus-color: transparent;");
-        loadArea.setStyle("-fx-faint-focus-color: transparent;");
 
         HBox buttonWrapper = new HBox();
         Button btnConfirm = new Button("Ok");

@@ -78,7 +78,7 @@ public class Main extends Application {
         });
 
         rootStage = stage;
-        rootStage.setTitle("MediaPlayer");
+        rootStage.setTitle("MediaPlayer - Štěpán Faragula, A21B0119P");
         rootStage.setScene(rootScene);
         rootStage.setMinWidth(ROOT_WINDOW_MIN_WIDTH);
         rootStage.setMinHeight(ROOT_WINDOW_MIN_HEIGHT);
@@ -285,6 +285,7 @@ public class Main extends Application {
         Region spacer = new Region();
         Menu hideQueue = new Menu("✎");
 
+        openFile.setOnAction(AboutStage::createAboutStage);
         openRecent.setOnAction(RecentStage::createRecentStage);
         openURL.setOnAction(LoaderStage::createLoaderStage);
         openFolder.setOnAction(TimerStage::createTimerStage);
