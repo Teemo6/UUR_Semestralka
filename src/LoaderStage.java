@@ -20,7 +20,7 @@ public class LoaderStage {
     private static Stage loaderStage;
     private static Scene loaderScene;
 
-    public static void createLoaderStage(ActionEvent a){
+    public static void createLoaderStage(){
         if (loaderStage != null && loaderStage.isShowing()){
             loaderStage.close();
         }

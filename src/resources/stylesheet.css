@@ -111,18 +111,9 @@
     -fx-border-color: transparent;
 }
 
-.list-view .scroll-bar:vertical {
-    -fx-background-color: -customColor;
-}
-
 .list-view .increment-button ,.list-view .decrement-button {
     -fx-background-color:transparent;
     -fx-border-color:transparent;
-}
-
-.list-view .scroll-bar:vertical .thumb {
-    -fx-background-insets: 5, 5, 5, 5;
-    -fx-background-radius: 5;
 }
 
 .list-cell:filled:selected:focused, .list-cell:filled:selected {
@@ -130,7 +121,7 @@
 }
 
 .list-cell:filled:selected, .list-view:focused .list-cell:filled:selected{
-    -fx-text-fill:-customColor;
+    -fx-text-fill: -customColor;
 }
 
 .list-view .list-cell {
@@ -145,23 +136,20 @@
     -fx-background-color: #303030;
 }
 
-.list-view .scroll-bar:horizontal .increment-arrow,
-.list-view .scroll-bar:horizontal .decrement-arrow,
-.list-view .scroll-bar:horizontal .increment-button,
-.list-view .scroll-bar:horizontal .decrement-button {
-    -fx-padding:-10;
-}
-
-.list-view .scroll-bar:vertical, .list-view .scroll-bar:vertical .increment-button, .list-view .scroll-bar:vertical .decrement-button{
+.list-view .scroll-bar:vertical, .list-view .scroll-bar:vertical .increment-button, .list-view .scroll-bar:vertical .decrement-button,
+.list-view .scroll-bar:horizontal, .list-view .scroll-bar:horizontal .increment-button, .list-view .scroll-bar:horizontal .decrement-button{
     -fx-background-color: transparent;
-    -fx-padding: 3;
+    -fx-padding: 1;
 }
 
-.list-view .scroll-bar:vertical .increment-button, .list-view .scroll-bar:vertical .decrement-button{
+.list-view .scroll-bar:vertical .increment-button, .list-view .scroll-bar:vertical .decrement-button,
+.list-view .scroll-bar:horizontal .increment-button, .list-view .scroll-bar:horizontal .decrement-button{
     -fx-background-color: #101010
 }
 
-.list-view .scroll-bar:vertical .thumb {
+.list-view .scroll-bar:vertical .thumb,
+.list-view .scroll-bar:horizontal .thumb{
+    -fx-background-insets: 5, 5, 5, 5;
+    -fx-background-radius: 5;
     -fx-background-color: #303030;
-    -fx-background-radius: 2.0em;
 }

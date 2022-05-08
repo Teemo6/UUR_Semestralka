@@ -1,7 +1,8 @@
+import com.sun.javafx.charts.Legend;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.event.EventHandler;
+import javafx.beans.binding.ObjectBinding;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -9,16 +10,17 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.Image;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
+import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
+import uk.co.caprica.vlcj.player.component.EmbeddedMediaPlayerComponent;
+import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
+
 import java.io.File;
 
 public class Main extends Application {
@@ -31,18 +33,10 @@ public class Main extends Application {
     private BorderPane borderPane;
     private HBox controlHBox;
 
-    private Media media;
-    private MediaPlayer mediaPlayer;
-    private MediaView mediaView;
-
-    private File file = new File("D:/Anime/Solar Opposites/Solar Opposites Episode 2  The Unstable Grey Hole.mp4");
-    private final String MEDIA_URL = file.toURI().toString();
-
-    //private String MEDIA_URL = "https://www.youtube.com/watch?v=hh1WeQxfCX0";
-    //private String MEDIA_URL = "https://www.kiv.zcu.cz/~herout/vyuka/oop/video/oop-07.mp4";
-
-    // Media view
+    // Media
+    private MyMediaPlayer mediaPlayer = new MyMediaPlayer();
     private Pane mediaWrapper;
+    private MediaView mediaView;
 
     // Control pane
     private Slider timeSlider;
@@ -58,23 +52,45 @@ public class Main extends Application {
     private Button btnFullscreen;
 
     // Playlist
-    private ListView<String> playlist;
-    DataModel model = new DataModel();
+    private ListView<File> playlist;
+
+    // KeyCodeCombination
+    private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination openFolderCombo = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination openURLCombo = new KeyCodeCombination(KeyCode.U, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination openRecentCombo = new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination playPauseCombo = new KeyCodeCombination(KeyCode.SPACE);
+    private final KeyCombination playForwardCombo = new KeyCodeCombination(KeyCode.RIGHT);
+    private final KeyCombination playBackwardCombo = new KeyCodeCombination(KeyCode.LEFT);
+    private final KeyCombination playVolumeUpCombo = new KeyCodeCombination(KeyCode.UP);
+    private final KeyCombination playVolumeDownCombo = new KeyCodeCombination(KeyCode.DOWN);
+    private final KeyCombination playPreviousCombo = new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination playNextCombo = new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
 
     public void init(){
-        model.initModel();
+        Controls.setMediaPlayer(mediaPlayer);
+        //mediaPlayer.initModel();
     }
 
     @Override
     public void start(Stage stage){
         rootScene = new Scene(getRootPane());
         rootScene.getStylesheets().add("resources/stylesheet.css");
-
-        KeyCombination cntrlZ = new KeyCodeCombination(KeyCode.SPACE);
-        rootScene.setOnKeyPressed(e -> {
-            if(cntrlZ.match(e)){
-                Controls.playPause(mediaPlayer);
-            }
+        rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (openFileCombo.match(e)) Controls.openFile();
+            if (openFolderCombo.match(e)) Controls.openFolder();
+            if (openURLCombo.match(e)) Controls.openURL();
+            if (openRecentCombo.match(e)) Controls.openRecent();
+            if (playPauseCombo.match(e)) Controls.playPause();
+            if (playForwardCombo.match(e)) Controls.playForward();
+            if (playBackwardCombo.match(e)) Controls.playBackward();
+            if (playVolumeUpCombo.match(e)) Controls.playVolumeUp();
+            if (playVolumeDownCombo.match(e)) Controls.playVolumeDown();
+            if (playPreviousCombo.match(e)) Controls.playPrevious();
+            if (playNextCombo.match(e)) Controls.playNext();
+            if (playFullscreenCombo.match(e)) Controls.playFullscreen(rootStage, borderPane);
+            e.consume();
         });
 
         rootStage = stage;
@@ -84,8 +100,6 @@ public class Main extends Application {
         rootStage.setMinHeight(ROOT_WINDOW_MIN_HEIGHT);
         rootStage.getIcons().add(new Image("/resources/icon.png"));
         rootStage.setOnCloseRequest(e -> Platform.exit());
-        //rootStage.setFullScreen(true);
-
         rootStage.show();
     }
 
@@ -96,19 +110,26 @@ public class Main extends Application {
         borderPane.setTop(getTopMenuBar());
         borderPane.setBottom(getBottomControlBar());
         borderPane.setRight(getPlaylist());
+        borderPane.requestFocus();
+
+        borderPane.setOnDragOver(this::handleDragOver);
+        borderPane.setOnDragDropped(this::handleDragDropped);
 
         return borderPane;
     }
 
     private Node getMediaPlayerPane(){
         mediaWrapper = new Pane();
+/*
+        if(mediaPlayer.getMediaPlayer() == null){
+            Label mediaErrorLabel = new Label("Není co přehrávat\n Otevřete soubor");
 
-        media = new Media(MEDIA_URL);
-        mediaPlayer = new MediaPlayer(media);
-        mediaPlayer.setAutoPlay(true);
-        mediaPlayer.pause();
-
-        mediaView = new MediaView(mediaPlayer);
+            return mediaErrorLabel;
+        }
+*/
+        mediaView = new MediaView(mediaPlayer.getMediaPlayer());
+        mediaView.setMediaPlayer(mediaPlayer.getMediaPlayer());
+        mediaView.mediaPlayerProperty().bind(mediaPlayer.getMediaPlayerProperty());
         mediaView.fitWidthProperty().bind(mediaWrapper.widthProperty());
         mediaView.fitHeightProperty().bind(mediaWrapper.heightProperty());
         mediaView.setPreserveRatio(true);
@@ -168,14 +189,29 @@ public class Main extends Application {
     private Node getPlaylist() {
         VBox playlistWrapper = new VBox();
 
-        playlist = new ListView<>(model.mediaQueue.get());
+        playlist = new ListView<>(mediaPlayer.getFileQueue());
+        playlist.setPlaceholder(new Label("Není co přehrávat\n Otevřete soubor"));
+
+        playlist.setCellFactory(TextFieldListCell.forListView(new StringConverter<>() {
+            @Override
+            public String toString(File f) {
+                return f.getName();
+            }
+
+            @Override
+            public File fromString(String string) {
+                return null;
+            }
+        }));
+
+
         /*
         playlist.setCellFactory(e -> {
             ListCell<String> cell = new ListCell<>();
             cell.setPrefHeight(20);
             return cell;
         });
-*/
+        */
         HBox playlistButtonWrapper = new HBox();
 
         HBox playlistMoveWrapper = new HBox();
@@ -217,61 +253,55 @@ public class Main extends Application {
 
         Menu openMenu = new Menu("Otevřít");
         MenuItem openFile = new MenuItem("Otevřít soubor");
-        KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
         openFile.setAccelerator(openFileCombo);
-        //openFile.setOnAction(LoaderStage::createLoaderStage);     <---
+        openFile.setOnAction(e -> Controls.openFile());
 
         MenuItem openFolder= new MenuItem("Otevřít složku");
+        openFolder.setAccelerator(openFolderCombo);
+        openFolder.setOnAction(e -> Controls.openFolder());
+
         MenuItem openURL = new MenuItem("Otevřít URL");
-        KeyCombination openURLCombo = new KeyCodeCombination(KeyCode.U, KeyCombination.CONTROL_DOWN);
         openURL.setAccelerator(openURLCombo);
-        openURL.setOnAction(LoaderStage::createLoaderStage);
+        openURL.setOnAction(e -> Controls.openURL());
 
         MenuItem openRecent = new MenuItem("Otevřít nedávné");
-        KeyCombination openRecentCombo = new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN);
         openRecent.setAccelerator(openRecentCombo);
-        openRecent.setOnAction(RecentStage::createRecentStage);
+        openRecent.setOnAction(e -> Controls.openRecent());
+
         openMenu.getItems().addAll(openFile, openFolder, openURL, openRecent);
 
         Menu playMenu = new Menu("Přehrávání");
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
-        KeyCombination playPauseCombo = new KeyCodeCombination(KeyCode.SPACE);
         playPause.setAccelerator(playPauseCombo);
+        playPause.setOnAction(e -> Controls.playPause());
 
         MenuItem playForward = new MenuItem("Posun dopředu");
-        KeyCombination playForwardCombo = new KeyCodeCombination(KeyCode.RIGHT);
         playForward.setAccelerator(playForwardCombo);
-        playForward.setOnAction(Controls::playForward);
+        playForward.setOnAction(e -> Controls.playForward());
 
         MenuItem playBackward = new MenuItem("Posun dozadu");
-        KeyCombination playBackwardCombo = new KeyCodeCombination(KeyCode.LEFT);
         playBackward.setAccelerator(playBackwardCombo);
-        playBackward.setOnAction(Controls::playBackward);
+        playBackward.setOnAction(e -> Controls.playBackward());
 
         MenuItem playVolumeUp = new MenuItem("Zvýšit hlasitost");
-        KeyCombination playVolumeUpCombo = new KeyCodeCombination(KeyCode.UP);
         playVolumeUp.setAccelerator(playVolumeUpCombo);
-        playVolumeUp.setOnAction(Controls::playVolumeUp);
+        playVolumeUp.setOnAction(e -> Controls.playVolumeUp());
 
         MenuItem playVolumeDown = new MenuItem("Snížit hlasitost");
-        KeyCombination playVolumeDownCombo = new KeyCodeCombination(KeyCode.DOWN);
         playVolumeDown.setAccelerator(playVolumeDownCombo);
-        playVolumeDown.setOnAction(Controls::playVolumeDown);
+        playVolumeDown.setOnAction(e -> Controls.playVolumeDown());
 
         MenuItem playPrevious = new MenuItem("Předchozí stopa");
-        KeyCombination playPreviousCombo = new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN);
         playPrevious.setAccelerator(playPreviousCombo);
-        playPrevious.setOnAction(Controls::playPrevious);
+        playPrevious.setOnAction(e -> Controls.playPrevious());
 
         MenuItem playNext = new MenuItem("Následující stopa");
-        KeyCombination playNextCombo = new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN);
         playNext.setAccelerator(playNextCombo);
-        playNext.setOnAction(Controls::playNext);
+        playNext.setOnAction(e -> Controls.playNext());
 
         MenuItem playFullscreen = new MenuItem("Celá obrazovka");
-        KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
         playFullscreen.setAccelerator(playFullscreenCombo);
-        playFullscreen.setOnAction(e -> Controls.playFullscreen(e, rootStage));
+        playFullscreen.setOnAction(e -> Controls.playFullscreen(rootStage, borderPane));
 
         playMenu.getItems().addAll(
                 playPause, playForward, playBackward, new SeparatorMenuItem(),
@@ -285,12 +315,6 @@ public class Main extends Application {
         Region spacer = new Region();
         Menu hideQueue = new Menu("✎");
 
-        openFile.setOnAction(AboutStage::createAboutStage);
-        openRecent.setOnAction(RecentStage::createRecentStage);
-        openURL.setOnAction(LoaderStage::createLoaderStage);
-        openFolder.setOnAction(TimerStage::createTimerStage);
-        Controls.onMenuClick(hideQueue);
-
         spacer.getStyleClass().add("menu-bar");
         HBox.setHgrow(spacer, Priority.ALWAYS);
         menuBar.getMenus().addAll(openMenu, playMenu, timerMenu, application);
@@ -298,6 +322,19 @@ public class Main extends Application {
         menuBarWrapper.getChildren().addAll(menuBar, spacer, new MenuBar(hideQueue));
 
         return menuBarWrapper;
+    }
+
+    private void handleDragOver(DragEvent event) {
+        if (event.getGestureSource() != borderPane && event.getDragboard().hasFiles()) {
+            event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+        }
+        event.consume();
+    }
+
+    private void handleDragDropped(DragEvent event){
+        Dragboard db = event.getDragboard();
+        File file = db.getFiles().get(0);
+        System.out.println("file");
     }
 
     public static void main(String[] args) {
