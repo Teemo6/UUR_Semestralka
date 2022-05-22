@@ -1,7 +1,9 @@
-import com.sun.javafx.charts.Legend;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.beans.binding.Bindings;
 import javafx.beans.binding.ObjectBinding;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -14,14 +16,15 @@ import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.Image;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
-import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
-import uk.co.caprica.vlcj.player.component.EmbeddedMediaPlayerComponent;
-import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
 
 import java.io.File;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 public class Main extends Application {
 
@@ -34,7 +37,8 @@ public class Main extends Application {
     private HBox controlHBox;
 
     // Media
-    private MyMediaPlayer mediaPlayer = new MyMediaPlayer();
+    private MyMediaPlayer myMediaPlayer = new MyMediaPlayer();
+    private ObjectBinding<MediaPlayer> currentMediaPlayer;
     private Pane mediaWrapper;
     private MediaView mediaView;
 
@@ -69,8 +73,8 @@ public class Main extends Application {
     private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
 
     public void init(){
-        Controls.setMediaPlayer(mediaPlayer);
-        //mediaPlayer.initModel();
+        Controls.setMediaPlayer(myMediaPlayer);
+        myMediaPlayer.initModel();
     }
 
     @Override
@@ -92,6 +96,7 @@ public class Main extends Application {
             if (playFullscreenCombo.match(e)) Controls.playFullscreen(rootStage, borderPane);
             e.consume();
         });
+
 
         rootStage = stage;
         rootStage.setTitle("MediaPlayer - Štěpán Faragula, A21B0119P");
@@ -127,9 +132,9 @@ public class Main extends Application {
             return mediaErrorLabel;
         }
 */
-        mediaView = new MediaView(mediaPlayer.getMediaPlayer());
-        mediaView.setMediaPlayer(mediaPlayer.getMediaPlayer());
-        mediaView.mediaPlayerProperty().bind(mediaPlayer.getMediaPlayerProperty());
+        mediaView = new MediaView(myMediaPlayer.getMediaPlayer());
+        mediaView.setMediaPlayer(myMediaPlayer.getMediaPlayer());
+        mediaView.mediaPlayerProperty().bind(myMediaPlayer.getMediaPlayerProperty());
         mediaView.fitWidthProperty().bind(mediaWrapper.widthProperty());
         mediaView.fitHeightProperty().bind(mediaWrapper.heightProperty());
         mediaView.setPreserveRatio(true);
@@ -153,7 +158,55 @@ public class Main extends Application {
         HBox playControl = new HBox();
 
         timeSlider = new Slider();
+
         timeLabel = new Label("00:00:07 / 00:23:42");
+
+        InvalidationListener sliderChangeListener = o-> {
+            myMediaPlayer.getMediaPlayer().seek(myMediaPlayer.getMediaPlayer().getMedia().getDuration().multiply(timeSlider.getValue() / 100.0));
+        };
+
+        timeSlider.valueProperty().addListener(sliderChangeListener);
+
+        myMediaPlayer.getMediaPlayer().currentTimeProperty().addListener(e -> {
+            timeSlider.valueProperty().removeListener(sliderChangeListener);
+
+            double value = (myMediaPlayer.getMediaPlayer().getCurrentTime().toSeconds() / myMediaPlayer.getMediaPlayer().getMedia().getDuration().toSeconds()) * 100;
+            timeSlider.setValue(value);
+
+            Duration current = myMediaPlayer.getMediaPlayer().getCurrentTime();
+            Duration total = myMediaPlayer.getMediaPlayer().getTotalDuration();
+            String formattedTime =  String.format("%02d:%02d:%02d / %02d:%02d:%02d",
+                    (int) current.toHours(),
+                    (int) current.toMinutes() % 60,
+                    (int) current.toSeconds() % 60,
+
+                    (int) total.toHours(),
+                    (int) total.toMinutes() % 60,
+                    (int) total.toSeconds() % 60);
+
+            timeLabel.setText(formattedTime);
+
+            //timeLabel.setText(formattedTime);
+
+            timeSlider.valueProperty().addListener(sliderChangeListener);
+        });
+
+        timeLabel.textProperty().bind(
+                Bindings.createStringBinding(() -> {
+                            Duration current = myMediaPlayer.getMediaPlayer().getCurrentTime();
+                            Duration total = myMediaPlayer.getMediaPlayer().getTotalDuration();
+                            return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
+                                    (int) current.toHours(),
+                                    (int) current.toMinutes() % 60,
+                                    (int) current.toSeconds() % 60,
+
+                                    (int) total.toHours(),
+                                    (int) total.toMinutes() % 60,
+                                    (int) total.toSeconds() % 60);
+                        },
+                        myMediaPlayer.getMediaPlayer().currentTimeProperty()
+                ));
+
 
         timeControl.getChildren().addAll(timeSlider, timeLabel);
         timeControl.getChildren().forEach(c -> HBox.setHgrow(c, Priority.ALWAYS));
@@ -189,7 +242,7 @@ public class Main extends Application {
     private Node getPlaylist() {
         VBox playlistWrapper = new VBox();
 
-        playlist = new ListView<>(mediaPlayer.getFileQueue());
+        playlist = new ListView<>(myMediaPlayer.getFileQueue());
         playlist.setPlaceholder(new Label("Není co přehrávat\n Otevřete soubor"));
 
         playlist.setCellFactory(TextFieldListCell.forListView(new StringConverter<>() {

@@ -8,7 +8,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import javax.swing.*;
 import java.io.File;
 
 public class Controls {
@@ -44,31 +43,45 @@ public class Controls {
     }
 
     public static void playVolumeUp() {
-        System.out.println("up");
+        if (myMediaPlayer.getMediaPlayer() != null) {
+            double currentVolume = myMediaPlayer.getMediaPlayer().getVolume();
+            if(currentVolume + 0.05 > 1) {
+                myMediaPlayer.getMediaPlayer().setVolume(1);
+            } else {
+                myMediaPlayer.getMediaPlayer().setVolume(currentVolume + 0.05);
+            }
+        }
     }
 
     public static void playVolumeDown() {
-        System.out.println("down");
+        if (myMediaPlayer.getMediaPlayer() != null) {
+            double currentVolume = myMediaPlayer.getMediaPlayer().getVolume();
+            if(currentVolume - 0.05 < 0) {
+                myMediaPlayer.getMediaPlayer().setVolume(0);
+            } else {
+                myMediaPlayer.getMediaPlayer().setVolume(currentVolume - 0.05);
+            }
+        }
     }
 
     public static void playNext(){
-        if(myMediaPlayer.getFileQueue().size() > myMediaPlayer.getCurrentMedia()+1){
+        if(myMediaPlayer.getCurrentFileIndex() + 1 <= myMediaPlayer.getFileQueue().size() - 1){
             if(myMediaPlayer.getMediaPlayer() != null){
                 myMediaPlayer.getMediaPlayer().stop();
+                myMediaPlayer.getMediaPlayer().dispose();
             }
-            myMediaPlayer.setCurrentMediaProperty(myMediaPlayer.getCurrentMedia() + 1);
-            myMediaPlayer.setMediaPlayer(new MediaPlayer(myMediaPlayer.getCurrentMediaFile()));
+            myMediaPlayer.setCurrentMediaProperty(myMediaPlayer.getCurrentFileIndex() + 1);
             myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
         }
     }
 
     public static void playPrevious(){
-        if(myMediaPlayer.getFileQueue().size() < myMediaPlayer.getCurrentMedia()-1){
+        if(myMediaPlayer.getCurrentFileIndex() - 1 >= 0){
             if(myMediaPlayer.getMediaPlayer() != null){
                 myMediaPlayer.getMediaPlayer().stop();
+                myMediaPlayer.getMediaPlayer().dispose();
             }
-            myMediaPlayer.setCurrentMediaProperty(myMediaPlayer.getCurrentMedia() - 1);
-            myMediaPlayer.setMediaPlayer(new MediaPlayer(myMediaPlayer.getCurrentMediaFile()));
+            myMediaPlayer.setCurrentMediaProperty(myMediaPlayer.getCurrentFileIndex() - 1);
             myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
         }
     }
@@ -101,8 +114,7 @@ public class Controls {
 
                 myMediaPlayer.getFileQueue().clear();
                 myMediaPlayer.getFileQueue().add(file);
-
-                myMediaPlayer.setMediaPlayer(new MediaPlayer(myMediaPlayer.getCurrentMediaFile()));
+                myMediaPlayer.resetFileIndex();
                 myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
             } catch(Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -126,8 +138,7 @@ public class Controls {
 
                 myMediaPlayer.getFileQueue().clear();
                 myMediaPlayer.getFileQueue().add(file);
-
-                myMediaPlayer.setMediaPlayer(new MediaPlayer(myMediaPlayer.getCurrentMediaFile()));
+                myMediaPlayer.resetFileIndex();
                 myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
             } catch(Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
