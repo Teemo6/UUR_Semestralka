@@ -1,10 +1,11 @@
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.ObjectBinding;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,15 +17,13 @@ import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.Image;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
+import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
-
 import java.io.File;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 
 public class Main extends Application {
 
@@ -38,31 +37,30 @@ public class Main extends Application {
 
     // Media
     private MyMediaPlayer myMediaPlayer = new MyMediaPlayer();
-    private ObjectBinding<MediaPlayer> currentMediaPlayer;
+    private ObjectProperty<MediaPlayer> currentMediaPlayer = new SimpleObjectProperty<>();
     private Pane mediaWrapper;
     private MediaView mediaView;
 
     // Control pane
-    private Slider timeSlider;
-    private Label timeLabel;
+    private Slider timeSlider = new Slider();
+    private Label timeLabel = new Label();
 
     private Button btnPlay;
     private Button btnPause;
     private Button btnPrev;
     private Button btnNext;
-    private Slider soundSlider;
-    private Label soundLabel;
+    private Slider soundSlider = new Slider();
+    private Label soundLabel = new Label();
     private Region spacer;
     private Button btnFullscreen;
 
     // Playlist
-    private ListView<File> playlist;
+    private ListView<Media> playlist;
 
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
     private final KeyCombination openFolderCombo = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
     private final KeyCombination openURLCombo = new KeyCodeCombination(KeyCode.U, KeyCombination.CONTROL_DOWN);
-    private final KeyCombination openRecentCombo = new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playPauseCombo = new KeyCodeCombination(KeyCode.SPACE);
     private final KeyCombination playForwardCombo = new KeyCodeCombination(KeyCode.RIGHT);
     private final KeyCombination playBackwardCombo = new KeyCodeCombination(KeyCode.LEFT);
@@ -73,6 +71,53 @@ public class Main extends Application {
     private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
 
     public void init(){
+        currentMediaPlayer.bind(myMediaPlayer.getMediaPlayerProperty());
+
+        // Binding prvku
+        currentMediaPlayer.addListener((obs, oldVal, newVal) -> {
+            // Slider videa
+            InvalidationListener sliderChangeListener = o-> {
+                if(currentMediaPlayer.getValue() != null)
+                    currentMediaPlayer.getValue().seek(currentMediaPlayer.getValue().getMedia().getDuration().multiply(timeSlider.getValue() / 100.0));
+            };
+
+            timeSlider.valueProperty().addListener(sliderChangeListener);
+
+            timeSlider.valueProperty().bind(currentMediaPlayer.getValue().volumeProperty());
+            timeSlider.valueProperty().removeListener(sliderChangeListener);
+
+            double value = (currentMediaPlayer.getValue().getCurrentTime().toSeconds() / currentMediaPlayer.getValue().getMedia().getDuration().toSeconds()) * 100;
+            timeSlider.setValue(value);
+
+            timeSlider.valueProperty().addListener(sliderChangeListener);
+
+            // Label videa
+            timeLabel.textProperty().bind(
+                    Bindings.createStringBinding(() -> {
+                                Duration current = currentMediaPlayer.getValue().getCurrentTime();
+                                Duration total = currentMediaPlayer.getValue().getTotalDuration();
+                                return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
+                                        (int) current.toHours(),
+                                        (int) current.toMinutes() % 60,
+                                        (int) current.toSeconds() % 60,
+
+                                        (int) total.toHours(),
+                                        (int) total.toMinutes() % 60,
+                                        (int) total.toSeconds() % 60);
+                            },
+                            currentMediaPlayer.getValue().currentTimeProperty()
+                    ));
+
+            // Slider hlasitosti
+            soundLabel.textProperty().bind(
+                    Bindings.createStringBinding(() -> {
+                                int volume = (int) (currentMediaPlayer.getValue().getVolume() * 100);
+                                return String.format("%d%%", volume);
+                            },
+                            currentMediaPlayer.getValue().volumeProperty()
+                    ));
+        });
+
         Controls.setMediaPlayer(myMediaPlayer);
         myMediaPlayer.initModel();
     }
@@ -85,7 +130,6 @@ public class Main extends Application {
             if (openFileCombo.match(e)) Controls.openFile();
             if (openFolderCombo.match(e)) Controls.openFolder();
             if (openURLCombo.match(e)) Controls.openURL();
-            if (openRecentCombo.match(e)) Controls.openRecent();
             if (playPauseCombo.match(e)) Controls.playPause();
             if (playForwardCombo.match(e)) Controls.playForward();
             if (playBackwardCombo.match(e)) Controls.playBackward();
@@ -96,7 +140,6 @@ public class Main extends Application {
             if (playFullscreenCombo.match(e)) Controls.playFullscreen(rootStage, borderPane);
             e.consume();
         });
-
 
         rootStage = stage;
         rootStage.setTitle("MediaPlayer - Štěpán Faragula, A21B0119P");
@@ -125,16 +168,10 @@ public class Main extends Application {
 
     private Node getMediaPlayerPane(){
         mediaWrapper = new Pane();
-/*
-        if(mediaPlayer.getMediaPlayer() == null){
-            Label mediaErrorLabel = new Label("Není co přehrávat\n Otevřete soubor");
 
-            return mediaErrorLabel;
-        }
-*/
-        mediaView = new MediaView(myMediaPlayer.getMediaPlayer());
-        mediaView.setMediaPlayer(myMediaPlayer.getMediaPlayer());
-        mediaView.mediaPlayerProperty().bind(myMediaPlayer.getMediaPlayerProperty());
+        mediaView = new MediaView(currentMediaPlayer.getValue());
+        mediaView.setMediaPlayer(currentMediaPlayer.getValue());
+        mediaView.mediaPlayerProperty().bind(currentMediaPlayer);
         mediaView.fitWidthProperty().bind(mediaWrapper.widthProperty());
         mediaView.fitHeightProperty().bind(mediaWrapper.heightProperty());
         mediaView.setPreserveRatio(true);
@@ -157,68 +194,23 @@ public class Main extends Application {
         HBox timeControl = new HBox();
         HBox playControl = new HBox();
 
-        timeSlider = new Slider();
-
-        timeLabel = new Label("00:00:07 / 00:23:42");
-
-        InvalidationListener sliderChangeListener = o-> {
-            myMediaPlayer.getMediaPlayer().seek(myMediaPlayer.getMediaPlayer().getMedia().getDuration().multiply(timeSlider.getValue() / 100.0));
-        };
-
-        timeSlider.valueProperty().addListener(sliderChangeListener);
-
-        myMediaPlayer.getMediaPlayer().currentTimeProperty().addListener(e -> {
-            timeSlider.valueProperty().removeListener(sliderChangeListener);
-
-            double value = (myMediaPlayer.getMediaPlayer().getCurrentTime().toSeconds() / myMediaPlayer.getMediaPlayer().getMedia().getDuration().toSeconds()) * 100;
-            timeSlider.setValue(value);
-
-            Duration current = myMediaPlayer.getMediaPlayer().getCurrentTime();
-            Duration total = myMediaPlayer.getMediaPlayer().getTotalDuration();
-            String formattedTime =  String.format("%02d:%02d:%02d / %02d:%02d:%02d",
-                    (int) current.toHours(),
-                    (int) current.toMinutes() % 60,
-                    (int) current.toSeconds() % 60,
-
-                    (int) total.toHours(),
-                    (int) total.toMinutes() % 60,
-                    (int) total.toSeconds() % 60);
-
-            timeLabel.setText(formattedTime);
-
-            //timeLabel.setText(formattedTime);
-
-            timeSlider.valueProperty().addListener(sliderChangeListener);
-        });
-
-        timeLabel.textProperty().bind(
-                Bindings.createStringBinding(() -> {
-                            Duration current = myMediaPlayer.getMediaPlayer().getCurrentTime();
-                            Duration total = myMediaPlayer.getMediaPlayer().getTotalDuration();
-                            return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
-                                    (int) current.toHours(),
-                                    (int) current.toMinutes() % 60,
-                                    (int) current.toSeconds() % 60,
-
-                                    (int) total.toHours(),
-                                    (int) total.toMinutes() % 60,
-                                    (int) total.toSeconds() % 60);
-                        },
-                        myMediaPlayer.getMediaPlayer().currentTimeProperty()
-                ));
-
-
         timeControl.getChildren().addAll(timeSlider, timeLabel);
         timeControl.getChildren().forEach(c -> HBox.setHgrow(c, Priority.ALWAYS));
         timeControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(20));
         timeControl.setSpacing(10);
 
         btnPlay = new ButtonSVG(IconSVG.PLAY_RIGHT.getPath());
+        btnPlay.setOnAction(e -> Controls.playPause());
+
         btnPause = new ButtonSVG(IconSVG.PAUSE.getPath());
+        btnPause.setOnAction(e -> Controls.playPause());
+
         btnPrev = new ButtonSVG(IconSVG.ARROW_LEFT.getPath());
+        btnPrev.setOnAction(e -> Controls.playBackward());
+
         btnNext = new ButtonSVG(IconSVG.ARROW_RIGHT.getPath());
-        soundSlider = new Slider();
-        soundLabel = new Label("100%");
+        btnNext.setOnAction(e -> Controls.playForward());
+
         soundLabel.setStyle("-fx-font-size: 12.0 pt;");
         spacer = new Region();
         btnFullscreen = new ButtonSVG(IconSVG.FULLSCREEN.getPath());
@@ -247,12 +239,12 @@ public class Main extends Application {
 
         playlist.setCellFactory(TextFieldListCell.forListView(new StringConverter<>() {
             @Override
-            public String toString(File f) {
-                return f.getName();
+            public String toString(Media f) {
+                return f.getSource();
             }
 
             @Override
-            public File fromString(String string) {
+            public Media fromString(String string) {
                 return null;
             }
         }));
@@ -275,7 +267,10 @@ public class Main extends Application {
 
         HBox playlistManageWrapper = new HBox();
         Button playlistAdd = new ButtonSVG(IconSVG.PLUS.getPath());
+        playlistAdd.setOnAction(e -> Controls.addToQueue());
+
         Button playlistRemove = new ButtonSVG(IconSVG.MINUS.getPath());
+        playlistRemove.setOnAction(e -> Controls.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
 
         HBox playlistOrderWrapper = new HBox();
         Button playlistShuffle = new ButtonSVG(IconSVG.SHUFFLE.getPath());
@@ -316,12 +311,7 @@ public class Main extends Application {
         MenuItem openURL = new MenuItem("Otevřít URL");
         openURL.setAccelerator(openURLCombo);
         openURL.setOnAction(e -> Controls.openURL());
-
-        MenuItem openRecent = new MenuItem("Otevřít nedávné");
-        openRecent.setAccelerator(openRecentCombo);
-        openRecent.setOnAction(e -> Controls.openRecent());
-
-        openMenu.getItems().addAll(openFile, openFolder, openURL, openRecent);
+        openMenu.getItems().addAll(openFile, openFolder, openURL);
 
         Menu playMenu = new Menu("Přehrávání");
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
@@ -387,7 +377,7 @@ public class Main extends Application {
     private void handleDragDropped(DragEvent event){
         Dragboard db = event.getDragboard();
         File file = db.getFiles().get(0);
-        System.out.println("file");
+        System.out.println(file.getName());
     }
 
     public static void main(String[] args) {

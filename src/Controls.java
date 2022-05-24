@@ -65,23 +65,23 @@ public class Controls {
     }
 
     public static void playNext(){
-        if(myMediaPlayer.getCurrentFileIndex() + 1 <= myMediaPlayer.getFileQueue().size() - 1){
+        if(myMediaPlayer.getCurrentMediaIndex() + 1 <= myMediaPlayer.getFileQueue().size() - 1){
             if(myMediaPlayer.getMediaPlayer() != null){
                 myMediaPlayer.getMediaPlayer().stop();
                 myMediaPlayer.getMediaPlayer().dispose();
             }
-            myMediaPlayer.setCurrentMediaProperty(myMediaPlayer.getCurrentFileIndex() + 1);
+            myMediaPlayer.raiseCurrentFileIndex();
             myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
         }
     }
 
     public static void playPrevious(){
-        if(myMediaPlayer.getCurrentFileIndex() - 1 >= 0){
+        if(myMediaPlayer.getCurrentMediaIndex() - 1 >= 0){
             if(myMediaPlayer.getMediaPlayer() != null){
                 myMediaPlayer.getMediaPlayer().stop();
                 myMediaPlayer.getMediaPlayer().dispose();
             }
-            myMediaPlayer.setCurrentMediaProperty(myMediaPlayer.getCurrentFileIndex() - 1);
+            myMediaPlayer.lowerCurrentMediaIndex();
             myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
         }
     }
@@ -113,8 +113,8 @@ public class Controls {
                 new MediaPlayer(new Media(file.toURI().toString()));
 
                 myMediaPlayer.getFileQueue().clear();
-                myMediaPlayer.getFileQueue().add(file);
-                myMediaPlayer.resetFileIndex();
+                myMediaPlayer.getFileQueue().add(new Media(file.toURI().toString()));
+                myMediaPlayer.resetMediaIndex();
                 myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
             } catch(Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -137,8 +137,8 @@ public class Controls {
                 new MediaPlayer(new Media(file.toURI().toString()));
 
                 myMediaPlayer.getFileQueue().clear();
-                myMediaPlayer.getFileQueue().add(file);
-                myMediaPlayer.resetFileIndex();
+                myMediaPlayer.getFileQueue().add(new Media(file.toURI().toString()));
+                myMediaPlayer.resetMediaIndex();
                 myMediaPlayer.getMediaPlayer().setOnReady(() -> myMediaPlayer.getMediaPlayer().play());
             } catch(Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -155,6 +155,29 @@ public class Controls {
         LoaderStage.createLoaderStage();
     }
 
-    public static void openRecent() {
+    public static void addToQueue(){
+        FileChooser fc = new FileChooser();
+        File file = fc.showOpenDialog(null);
+
+        if(file != null){
+            try{
+                new MediaPlayer(new Media(file.toURI().toString()));
+
+                myMediaPlayer.getFileQueue().add(new Media(file.toURI().toString()));
+            } catch(Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Otevřít soubor");
+                alert.setHeaderText("Nepodporovaný formát");
+                alert.setContentText("Zvolte jiný typ souboru.");
+                alert.showAndWait();
+            }
+        }
+    }
+
+    public static void removeFromQueue(Media toRemove){
+            if(myMediaPlayer.getCurrentMediaFile().equals(toRemove)){
+                myMediaPlayer.resetMediaIndex();
+            }
+        myMediaPlayer.getFileQueue().remove(toRemove);
     }
 }

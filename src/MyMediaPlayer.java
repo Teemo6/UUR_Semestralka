@@ -1,11 +1,7 @@
-import static javafx.beans.binding.Bindings.*;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -14,40 +10,49 @@ import javafx.scene.media.MediaPlayer;
 import java.io.File;
 
 public class MyMediaPlayer{
-    private ObservableList<File> fileQueue = FXCollections.observableArrayList();
+    private ObservableList<Media> mediaQueue = FXCollections.observableArrayList();
     private ObjectProperty<MediaPlayer> mediaPlayer = new SimpleObjectProperty<>();
-    private IntegerProperty currentFileIndex = new SimpleIntegerProperty();
+    private IntegerProperty currentMediaIndex = new SimpleIntegerProperty();
 
     public MyMediaPlayer(){
-        resetFileIndex();
+        resetMediaIndex();
 
-        fileQueue.addListener((ListChangeListener.Change<? extends File> c) -> mediaPlayer.set(new MediaPlayer(new Media(fileQueue.get(currentFileIndex.getValue()).toURI().toString()))));
+        mediaQueue.addListener((ListChangeListener.Change<? extends Media> c) -> mediaPlayer.set(new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()))));
 
-        currentFileIndex.addListener((obs, oldVal, newVal) -> mediaPlayer.set(new MediaPlayer(new Media(fileQueue.get(currentFileIndex.getValue()).toURI().toString()))));
+        currentMediaIndex.addListener((obs, oldVal, newVal) -> mediaPlayer.set(new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()))));
     }
 
     public Media getCurrentMediaFile(){
-        return new Media(fileQueue.get(currentFileIndex.get()).toURI().toString());
+        return mediaQueue.get(currentMediaIndex.get());
     }
 
-    public int getCurrentFileIndex(){
-        return currentFileIndex.get();
+    public int getCurrentMediaIndex(){
+        return currentMediaIndex.get();
+    }
+
+    public void setCurrentMediaIndex(int value){
+        currentMediaIndex.set(value);}
+
+    public void raiseCurrentFileIndex(){
+        currentMediaIndex.set(getCurrentMediaIndex() + 1);}
+
+    public void lowerCurrentMediaIndex(){
+        currentMediaIndex.set(getCurrentMediaIndex() - 1);}
+
+    public void resetMediaIndex(){
+        this.currentMediaIndex.set(0);
     }
 
     public IntegerProperty getCurrentMediaProperty(){
-        return currentFileIndex;
+        return currentMediaIndex;
     }
 
-    public ObservableList<File> getFileQueue(){
-        return fileQueue;
+    public ObservableList<Media> getFileQueue(){
+        return mediaQueue;
     }
 
     public void setCurrentMediaProperty(int currentMedia){
-        this.currentFileIndex.set(currentMedia);
-    }
-
-    public void resetFileIndex(){
-        this.currentFileIndex.set(0);
+        this.currentMediaIndex.set(currentMedia);
     }
 
     public ObjectProperty<MediaPlayer> getMediaPlayerProperty(){
@@ -63,8 +68,8 @@ public class MyMediaPlayer{
     }
 
     public void initModel(){
-        fileQueue.add(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 01.mp4"));
-        fileQueue.add(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 02.mp4"));
-        fileQueue.add(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 03.mp4"));
+        mediaQueue.add(new Media(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 01.mp4").toURI().toString()));
+        mediaQueue.add(new Media(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 02.mp4").toURI().toString()));
+        mediaQueue.add(new Media(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 03.mp4").toURI().toString()));
     }
 }
