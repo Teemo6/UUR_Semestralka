@@ -1,3 +1,5 @@
+import javafx.scene.shape.SVGPath;
+
 public enum IconSVG {
     PLAY_RIGHT("M 6.8937277,3.8811951 3.9898502,5.5577496 1.0859726,7.2343041 1.0859724,3.8811951 1.0859726,0.5280859 3.9898502,2.2046404 Z"),
     PLAY_UP("M 7.538206,6.9125888 H 4.0992775 0.66034865 L 2.3798131,3.9343892 4.0992774,0.95618966 5.8187417,3.9343891 Z"),
@@ -19,7 +21,9 @@ public enum IconSVG {
         this.path = path;
     }
 
-    public String getPath() {
-        return path;
+    public SVGPath getSVGPath() {
+        SVGPath SVGPath = new SVGPath();
+        SVGPath.setContent(path);
+        return SVGPath;
     }
 }

@@ -2,13 +2,11 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.collections.ListChangeListener;
+import javafx.beans.property.*;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -20,6 +18,7 @@ import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
@@ -30,25 +29,30 @@ public class Main extends Application {
     final double ROOT_WINDOW_MIN_WIDTH = 700;
     final double ROOT_WINDOW_MIN_HEIGHT = 500;
 
+    final int SEEK_TIME = 5;
+    final int VOLUME_CHANGE = 5;
+
+    IntegerProperty playerVolume = new SimpleIntegerProperty(100);
+    BooleanProperty isFullscreen = new SimpleBooleanProperty(false);
+
     private Stage rootStage;
     private Scene rootScene;
     private BorderPane borderPane;
-    private HBox controlHBox;
 
     // Media
-    private MyMediaPlayer myMediaPlayer = new MyMediaPlayer();
+    private DataModel myMediaPlayer = new DataModel();
     private ObjectProperty<MediaPlayer> currentMediaPlayer = new SimpleObjectProperty<>();
     private Pane mediaWrapper;
     private MediaView mediaView;
+    private Node mediaPlayerPane;
 
     // Control pane
     private Slider timeSlider = new Slider();
     private Label timeLabel = new Label();
 
-    private Button btnPlay;
-    private Button btnPause;
-    private Button btnPrev;
-    private Button btnNext;
+    private ButtonSVG btnPlay;
+    private ButtonSVG btnPrev;
+    private ButtonSVG btnNext;
     private Slider soundSlider = new Slider();
     private Label soundLabel = new Label();
     private Region spacer;
@@ -56,6 +60,9 @@ public class Main extends Application {
 
     // Playlist
     private ListView<Media> playlist;
+    private IntegerProperty playlistIndexPlaying = new SimpleIntegerProperty();
+    private IntegerProperty playlistIndexSelected = new SimpleIntegerProperty();
+
 
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
@@ -69,33 +76,59 @@ public class Main extends Application {
     private final KeyCombination playPreviousCombo = new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playNextCombo = new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
+    // tohle omylem nikdo nenakliká, když jo, rozbije si fullscreen :)
+    private final KeyCombination unrealCombo = new KeyCodeCombination(KeyCode.UNDERSCORE, KeyCombination.CONTROL_DOWN, KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN, KeyCombination.ALT_DOWN, KeyCombination.SHORTCUT_DOWN);
 
     public void init(){
-        currentMediaPlayer.bind(myMediaPlayer.getMediaPlayerProperty());
+        currentMediaPlayer.bind(myMediaPlayer.mediaPlayerProperty());
 
-        // Binding prvku
+        soundSlider.maxProperty().set(100);
+        soundSlider.valueProperty().bindBidirectional(playerVolume);
+        soundLabel.textProperty().bind(
+                Bindings.createStringBinding(() ->
+                        String.format("%d%%", playerVolume.get()),
+                        playerVolume
+                ));
+
+        // Binding MediaPlayer
         currentMediaPlayer.addListener((obs, oldVal, newVal) -> {
-            // Slider videa
-            InvalidationListener sliderChangeListener = o-> {
-                if(currentMediaPlayer.getValue() != null)
-                    currentMediaPlayer.getValue().seek(currentMediaPlayer.getValue().getMedia().getDuration().multiply(timeSlider.getValue() / 100.0));
+            InvalidationListener timeSliderChangeListener = o-> {
+                Duration seekTo = Duration.seconds(timeSlider.getValue());
+                currentMediaPlayer.get().seek(seekTo);
             };
 
-            timeSlider.valueProperty().addListener(sliderChangeListener);
+            timeSlider.valueProperty().removeListener(timeSliderChangeListener);
+            timeLabel.textProperty().unbind();
+            timeSlider.setValue(0);
+            timeLabel.setText("00:00:00/00:00:00");
 
-            timeSlider.valueProperty().bind(currentMediaPlayer.getValue().volumeProperty());
-            timeSlider.valueProperty().removeListener(sliderChangeListener);
+            // Pokud se neprehrava video, zastav se
+            if(currentMediaPlayer.get() == null){
+                return;
+            }
 
-            double value = (currentMediaPlayer.getValue().getCurrentTime().toSeconds() / currentMediaPlayer.getValue().getMedia().getDuration().toSeconds()) * 100;
-            timeSlider.setValue(value);
+            // Slider videa
+            currentMediaPlayer.get().setOnReady(() -> {
+                timeSlider.maxProperty().bind(
+                        Bindings.createDoubleBinding(
+                                () -> currentMediaPlayer.get().getTotalDuration().toSeconds(),
+                                currentMediaPlayer.get().totalDurationProperty())
+                        );
 
-            timeSlider.valueProperty().addListener(sliderChangeListener);
+                timeSlider.valueProperty().addListener(timeSliderChangeListener);
+
+                currentMediaPlayer.get().currentTimeProperty().addListener((observable, oldValue, newValue) -> {
+                    timeSlider.valueProperty().removeListener(timeSliderChangeListener);
+                    timeSlider.setValue(newValue.toSeconds());
+                    timeSlider.valueProperty().addListener(timeSliderChangeListener);
+                });
+            });
 
             // Label videa
             timeLabel.textProperty().bind(
                     Bindings.createStringBinding(() -> {
-                                Duration current = currentMediaPlayer.getValue().getCurrentTime();
-                                Duration total = currentMediaPlayer.getValue().getTotalDuration();
+                                Duration current = currentMediaPlayer.get().getCurrentTime();
+                                Duration total = currentMediaPlayer.get().getTotalDuration();
                                 return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
                                         (int) current.toHours(),
                                         (int) current.toMinutes() % 60,
@@ -105,17 +138,11 @@ public class Main extends Application {
                                         (int) total.toMinutes() % 60,
                                         (int) total.toSeconds() % 60);
                             },
-                            currentMediaPlayer.getValue().currentTimeProperty()
+                            currentMediaPlayer.get().currentTimeProperty()
                     ));
 
-            // Slider hlasitosti
-            soundLabel.textProperty().bind(
-                    Bindings.createStringBinding(() -> {
-                                int volume = (int) (currentMediaPlayer.getValue().getVolume() * 100);
-                                return String.format("%d%%", volume);
-                            },
-                            currentMediaPlayer.getValue().volumeProperty()
-                    ));
+            // Binding hlasitosti videa na hlasitost prehravace
+            currentMediaPlayer.get().volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get()/100.0, playerVolume));
         });
 
         Controls.setMediaPlayer(myMediaPlayer);
@@ -127,17 +154,17 @@ public class Main extends Application {
         rootScene = new Scene(getRootPane());
         rootScene.getStylesheets().add("resources/stylesheet.css");
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (openFileCombo.match(e)) Controls.openFile();
+            if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) Controls.openFolder();
-            if (openURLCombo.match(e)) Controls.openURL();
-            if (playPauseCombo.match(e)) Controls.playPause();
-            if (playForwardCombo.match(e)) Controls.playForward();
-            if (playBackwardCombo.match(e)) Controls.playBackward();
-            if (playVolumeUpCombo.match(e)) Controls.playVolumeUp();
-            if (playVolumeDownCombo.match(e)) Controls.playVolumeDown();
-            if (playPreviousCombo.match(e)) Controls.playPrevious();
-            if (playNextCombo.match(e)) Controls.playNext();
-            if (playFullscreenCombo.match(e)) Controls.playFullscreen(rootStage, borderPane);
+            if (openURLCombo.match(e)) LoaderStage.createLoaderStage();
+            if (playPauseCombo.match(e)) myMediaPlayer.playOrPause();
+            if (playForwardCombo.match(e)) myMediaPlayer.moveTime(SEEK_TIME);
+            if (playBackwardCombo.match(e)) myMediaPlayer.moveTime(-SEEK_TIME);
+            if (playVolumeUpCombo.match(e)) movePlayerVolume(VOLUME_CHANGE);
+            if (playVolumeDownCombo.match(e)) movePlayerVolume(-VOLUME_CHANGE);
+            if (playPreviousCombo.match(e)) myMediaPlayer.playPrevious();
+            if (playNextCombo.match(e)) myMediaPlayer.playNext();
+            if (playFullscreenCombo.match(e)) switchFullscreen();
             e.consume();
         });
 
@@ -148,13 +175,17 @@ public class Main extends Application {
         rootStage.setMinHeight(ROOT_WINDOW_MIN_HEIGHT);
         rootStage.getIcons().add(new Image("/resources/icon.png"));
         rootStage.setOnCloseRequest(e -> Platform.exit());
+        rootStage.setFullScreenExitHint("[Ctrl + F] ukončí režim celé obrazovky.");
+        rootStage.setFullScreenExitKeyCombination(unrealCombo);
         rootStage.show();
     }
 
     private Parent getRootPane(){
         borderPane = new BorderPane();
 
-        borderPane.setCenter(getMediaPlayerPane());
+        mediaPlayerPane = getMediaPlayerPane();
+
+        borderPane.setCenter(mediaPlayerPane);
         borderPane.setTop(getTopMenuBar());
         borderPane.setBottom(getBottomControlBar());
         borderPane.setRight(getPlaylist());
@@ -199,23 +230,28 @@ public class Main extends Application {
         timeControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(20));
         timeControl.setSpacing(10);
 
-        btnPlay = new ButtonSVG(IconSVG.PLAY_RIGHT.getPath());
-        btnPlay.setOnAction(e -> Controls.playPause());
+        btnPlay = new ButtonSVG(IconSVG.PLAY_RIGHT.getSVGPath());
+        btnPlay.setOnAction(e -> myMediaPlayer.playOrPause());
 
-        btnPause = new ButtonSVG(IconSVG.PAUSE.getPath());
-        btnPause.setOnAction(e -> Controls.playPause());
+        myMediaPlayer.isPlayingProperty().addListener((obs, oldVal, newVal) -> {
+            if(newVal)
+                btnPlay.setPath(IconSVG.PAUSE.getSVGPath());
+            else
+                btnPlay.setPath(IconSVG.PLAY_RIGHT.getSVGPath());
+        });
 
-        btnPrev = new ButtonSVG(IconSVG.ARROW_LEFT.getPath());
-        btnPrev.setOnAction(e -> Controls.playBackward());
+        btnPrev = new ButtonSVG(IconSVG.ARROW_LEFT.getSVGPath());
+        btnPrev.setOnAction(e -> myMediaPlayer.moveTime(-SEEK_TIME));
 
-        btnNext = new ButtonSVG(IconSVG.ARROW_RIGHT.getPath());
-        btnNext.setOnAction(e -> Controls.playForward());
+        btnNext = new ButtonSVG(IconSVG.ARROW_RIGHT.getSVGPath());
+        btnNext.setOnAction(e -> myMediaPlayer.moveTime(SEEK_TIME));
 
         soundLabel.setStyle("-fx-font-size: 12.0 pt;");
         spacer = new Region();
-        btnFullscreen = new ButtonSVG(IconSVG.FULLSCREEN.getPath());
+        btnFullscreen = new ButtonSVG(IconSVG.FULLSCREEN.getSVGPath());
+        btnFullscreen.setOnAction(e -> switchFullscreen());
 
-        playControl.getChildren().addAll(btnPlay, btnPause, btnPrev, btnNext, soundSlider, soundLabel, spacer, btnFullscreen);
+        playControl.getChildren().addAll(btnPlay, btnPrev, btnNext, soundSlider, soundLabel, spacer, btnFullscreen);
         playControl.getChildren().forEach(n -> ((Region)n).setPrefWidth(30));
         playControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(30));
         soundSlider.setPrefWidth(100);
@@ -236,11 +272,13 @@ public class Main extends Application {
 
         playlist = new ListView<>(myMediaPlayer.getFileQueue());
         playlist.setPlaceholder(new Label("Není co přehrávat\n Otevřete soubor"));
-
         playlist.setCellFactory(TextFieldListCell.forListView(new StringConverter<>() {
             @Override
             public String toString(Media f) {
-                return f.getSource();
+                String fileString = f.getSource();
+                fileString = fileString.substring(fileString.lastIndexOf('/') + 1);
+                fileString = fileString.replace("%20", " ");
+                return fileString;
             }
 
             @Override
@@ -249,32 +287,41 @@ public class Main extends Application {
             }
         }));
 
-
-        /*
-        playlist.setCellFactory(e -> {
-            ListCell<String> cell = new ListCell<>();
-            cell.setPrefHeight(20);
-            return cell;
+        playlistIndexPlaying.addListener((b, o, n) ->         {
+            playlist.getFocusModel().focus(playlistIndexPlaying.get());
+            playlist.scrollTo(playlistIndexPlaying.get());
         });
-        */
+        playlistIndexPlaying.bind(myMediaPlayer.currentMediaProperty());
+
         HBox playlistButtonWrapper = new HBox();
 
         HBox playlistMoveWrapper = new HBox();
-        Button playlistMoveStart = new ButtonSVG(IconSVG.FORWARD_UP.getPath());
-        Button playlistMoveUp = new ButtonSVG(IconSVG.PLAY_UP.getPath());
-        Button playlistMoveDown = new ButtonSVG(IconSVG.PLAY_DOWN.getPath());
-        Button playlistMoveEnd = new ButtonSVG(IconSVG.FORWARD_DOWN.getPath());
+        Button playlistMoveStart = new ButtonSVG(IconSVG.FORWARD_UP.getSVGPath());
+        playlistMoveStart.setOnAction(e -> moveFileAllWayUp());
+
+        Button playlistMoveUp = new ButtonSVG(IconSVG.PLAY_UP.getSVGPath());
+        playlistMoveUp.setOnAction(e -> moveFileUp());
+
+        Button playlistMoveDown = new ButtonSVG(IconSVG.PLAY_DOWN.getSVGPath());
+        playlistMoveDown.setOnAction(e -> moveFileDown());
+
+        Button playlistMoveEnd = new ButtonSVG(IconSVG.FORWARD_DOWN.getSVGPath());
+        playlistMoveEnd.setOnAction(e -> moveFileAllWayDown());
+
 
         HBox playlistManageWrapper = new HBox();
-        Button playlistAdd = new ButtonSVG(IconSVG.PLUS.getPath());
-        playlistAdd.setOnAction(e -> Controls.addToQueue());
+        Button playlistAdd = new ButtonSVG(IconSVG.PLUS.getSVGPath());
+        playlistAdd.setOnAction(e -> addFileToQueue());
 
-        Button playlistRemove = new ButtonSVG(IconSVG.MINUS.getPath());
-        playlistRemove.setOnAction(e -> Controls.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
+        Button playlistRemove = new ButtonSVG(IconSVG.MINUS.getSVGPath());
+        playlistRemove.setOnAction(e -> myMediaPlayer.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
 
         HBox playlistOrderWrapper = new HBox();
-        Button playlistShuffle = new ButtonSVG(IconSVG.SHUFFLE.getPath());
-        Button playlistSort = new ButtonSVG(IconSVG.SORT.getPath());
+        Button playlistShuffle = new ButtonSVG(IconSVG.SHUFFLE.getSVGPath());
+        playlistShuffle.setOnAction(e -> myMediaPlayer.shuffleQueue());
+
+        Button playlistSort = new ButtonSVG(IconSVG.SORT.getSVGPath());
+        playlistSort.setOnAction(e -> myMediaPlayer.sortQueue());
 
         playlistMoveWrapper.getChildren().addAll(playlistMoveStart, playlistMoveUp, playlistMoveDown, playlistMoveEnd);
         playlistManageWrapper.getChildren().addAll(playlistAdd, playlistRemove);
@@ -302,7 +349,7 @@ public class Main extends Application {
         Menu openMenu = new Menu("Otevřít");
         MenuItem openFile = new MenuItem("Otevřít soubor");
         openFile.setAccelerator(openFileCombo);
-        openFile.setOnAction(e -> Controls.openFile());
+        openFile.setOnAction(e -> overwriteQueueWithFile());
 
         MenuItem openFolder= new MenuItem("Otevřít složku");
         openFolder.setAccelerator(openFolderCombo);
@@ -310,41 +357,41 @@ public class Main extends Application {
 
         MenuItem openURL = new MenuItem("Otevřít URL");
         openURL.setAccelerator(openURLCombo);
-        openURL.setOnAction(e -> Controls.openURL());
+        openURL.setOnAction(e -> LoaderStage.createLoaderStage());
         openMenu.getItems().addAll(openFile, openFolder, openURL);
 
         Menu playMenu = new Menu("Přehrávání");
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
         playPause.setAccelerator(playPauseCombo);
-        playPause.setOnAction(e -> Controls.playPause());
+        playPause.setOnAction(e -> myMediaPlayer.playOrPause());
 
         MenuItem playForward = new MenuItem("Posun dopředu");
         playForward.setAccelerator(playForwardCombo);
-        playForward.setOnAction(e -> Controls.playForward());
+        playForward.setOnAction(e -> myMediaPlayer.moveTime(SEEK_TIME));
 
         MenuItem playBackward = new MenuItem("Posun dozadu");
         playBackward.setAccelerator(playBackwardCombo);
-        playBackward.setOnAction(e -> Controls.playBackward());
+        playBackward.setOnAction(e -> myMediaPlayer.moveTime(-SEEK_TIME));
 
         MenuItem playVolumeUp = new MenuItem("Zvýšit hlasitost");
         playVolumeUp.setAccelerator(playVolumeUpCombo);
-        playVolumeUp.setOnAction(e -> Controls.playVolumeUp());
+        playVolumeUp.setOnAction(e -> movePlayerVolume(VOLUME_CHANGE));
 
         MenuItem playVolumeDown = new MenuItem("Snížit hlasitost");
         playVolumeDown.setAccelerator(playVolumeDownCombo);
-        playVolumeDown.setOnAction(e -> Controls.playVolumeDown());
+        playVolumeDown.setOnAction(e -> movePlayerVolume(-VOLUME_CHANGE));
 
         MenuItem playPrevious = new MenuItem("Předchozí stopa");
         playPrevious.setAccelerator(playPreviousCombo);
-        playPrevious.setOnAction(e -> Controls.playPrevious());
+        playPrevious.setOnAction(e -> myMediaPlayer.playPrevious());
 
         MenuItem playNext = new MenuItem("Následující stopa");
         playNext.setAccelerator(playNextCombo);
-        playNext.setOnAction(e -> Controls.playNext());
+        playNext.setOnAction(e -> myMediaPlayer.playNext());
 
         MenuItem playFullscreen = new MenuItem("Celá obrazovka");
         playFullscreen.setAccelerator(playFullscreenCombo);
-        playFullscreen.setOnAction(e -> Controls.playFullscreen(rootStage, borderPane));
+        playFullscreen.setOnAction(e -> switchFullscreen());
 
         playMenu.getItems().addAll(
                 playPause, playForward, playBackward, new SeparatorMenuItem(),
@@ -356,7 +403,7 @@ public class Main extends Application {
         Menu timerMenu = new Menu("Časovač");
         Menu application = new Menu("O aplikaci");
         Region spacer = new Region();
-        Menu hideQueue = new Menu("✎");
+        Menu hideQueue = new Menu("Schovat");
 
         spacer.getStyleClass().add("menu-bar");
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -380,7 +427,115 @@ public class Main extends Application {
         System.out.println(file.getName());
     }
 
+    public void overwriteQueueWithFile(){
+        FileChooser fc = new FileChooser();
+        File file = fc.showOpenDialog(null);
+
+        if(file != null){
+            try{
+                myMediaPlayer.overwriteQueueWithFile(file);
+            } catch(Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Otevřít soubor");
+                alert.setHeaderText("Nepodporovaný formát");
+                alert.setContentText("Zvolte jiný typ souboru.");
+                alert.showAndWait();
+            }
+        }
+    }
+
+    public void addFileToQueue(){
+        FileChooser fc = new FileChooser();
+        File file = fc.showOpenDialog(null);
+
+        if(file != null){
+            try{
+                int selected = playlist.getSelectionModel().getSelectedIndex() + 1;
+                if(selected == -1){
+                    selected = 0;
+                }
+                myMediaPlayer.addFileToQueue(file, selected);
+            } catch(Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Otevřít soubor");
+                alert.setHeaderText("Nepodporovaný formát");
+                alert.setContentText("Zvolte jiný typ souboru.");
+                alert.showAndWait();
+            }
+        }
+    }
+
+    public void moveFileUp(){
+        int selected = playlist.getSelectionModel().getSelectedIndex();
+        if(selected != -1) {
+            myMediaPlayer.moveFileLowerOnce(selected);
+            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
+            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+        }
+    }
+
+    public void moveFileDown(){
+        int selected = playlist.getSelectionModel().getSelectedIndex();
+        if(selected != -1) {
+            myMediaPlayer.moveFileHigherOnce(selected);
+            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
+            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+        }
+    }
+
+    public void moveFileAllWayUp(){
+        int selected = playlist.getSelectionModel().getSelectedIndex();
+        if(selected != -1) {
+            myMediaPlayer.moveFileToFirst(selected);
+            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
+            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+        }
+    }
+
+    public void moveFileAllWayDown(){
+        int selected = playlist.getSelectionModel().getSelectedIndex();
+        if(selected != -1) {
+            myMediaPlayer.moveFileToLast(selected);
+            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
+            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+        }
+    }
+
+    public void switchFullscreen(){
+        if(rootStage.isFullScreen()) {
+            borderPane.setBottom(getBottomControlBar());
+            borderPane.setTop(getTopMenuBar());
+            borderPane.setRight(getPlaylist());
+
+            rootStage.setFullScreen(false);
+        } else {
+            borderPane.setBottom(null);
+            borderPane.setTop(null);
+            borderPane.setRight(null);
+
+            rootStage.setFullScreen(true);
+        }
+    }
+
+    public void movePlayerVolume(int moveVolume){
+        int currentVolume = playerVolume.get();
+        if(currentVolume + moveVolume > 100 ) {
+            playerVolume.set(100);
+        } else if(currentVolume + moveVolume < 0){
+            playerVolume.set(0);
+        } else {
+            playerVolume.set(currentVolume + moveVolume);
+        }
+    }
+
     public static void main(String[] args) {
         launch();
     }
 }
+
+/*
+//Now magic
+                    this.listDirectories.getSelectionModel().select(i);
+                    this.listDirectories.getFocusModel().focus(i);
+                    this.listDirectories.scrollTo(i);
+ */
