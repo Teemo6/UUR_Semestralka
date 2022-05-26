@@ -86,7 +86,7 @@ public class Main extends Application {
         soundSlider.valueProperty().bindBidirectional(playerVolume);
         soundLabel.textProperty().bind(
                 Bindings.createStringBinding(() ->
-                        String.format("%d%%", playerVolume.get()),
+                                String.format("%d%%", playerVolume.get()),
                         playerVolume
                 ));
 
@@ -109,11 +109,12 @@ public class Main extends Application {
 
             // Slider videa
             currentMediaPlayer.get().setOnReady(() -> {
+                System.out.println("ahoj");
                 timeSlider.maxProperty().bind(
                         Bindings.createDoubleBinding(
                                 () -> currentMediaPlayer.get().getTotalDuration().toSeconds(),
                                 currentMediaPlayer.get().totalDurationProperty())
-                        );
+                );
 
                 timeSlider.valueProperty().addListener(timeSliderChangeListener);
 
@@ -145,7 +146,6 @@ public class Main extends Application {
             currentMediaPlayer.get().volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get()/100.0, playerVolume));
         });
 
-        Controls.setMediaPlayer(myMediaPlayer);
         myMediaPlayer.initModel();
     }
 
@@ -155,7 +155,7 @@ public class Main extends Application {
         rootScene.getStylesheets().add("resources/stylesheet.css");
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
-            if (openFolderCombo.match(e)) Controls.openFolder();
+            if (openFolderCombo.match(e)) overwriteQueueWithFolder();
             if (openURLCombo.match(e)) LoaderStage.createLoaderStage();
             if (playPauseCombo.match(e)) myMediaPlayer.playOrPause();
             if (playForwardCombo.match(e)) myMediaPlayer.moveTime(SEEK_TIME);
@@ -353,7 +353,7 @@ public class Main extends Application {
 
         MenuItem openFolder= new MenuItem("Otevřít složku");
         openFolder.setAccelerator(openFolderCombo);
-        openFolder.setOnAction(e -> Controls.openFolder());
+        openFolder.setOnAction(e -> overwriteQueueWithFolder());
 
         MenuItem openURL = new MenuItem("Otevřít URL");
         openURL.setAccelerator(openURLCombo);
@@ -403,7 +403,7 @@ public class Main extends Application {
         Menu timerMenu = new Menu("Časovač");
         Menu application = new Menu("O aplikaci");
         Region spacer = new Region();
-        Menu hideQueue = new Menu("Schovat");
+        Menu hideQueue = new Menu("Skrýt");
 
         spacer.getStyleClass().add("menu-bar");
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -428,6 +428,24 @@ public class Main extends Application {
     }
 
     public void overwriteQueueWithFile(){
+        FileChooser fc = new FileChooser();
+        File file = fc.showOpenDialog(null);
+
+        if(file != null){
+            try{
+                myMediaPlayer.overwriteQueueWithFile(file);
+            } catch(Exception e) {
+                e.printStackTrace();
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Otevřít soubor");
+                alert.setHeaderText("Nepodporovaný formát");
+                alert.setContentText("Zvolte jiný typ souboru.");
+                alert.showAndWait();
+            }
+        }
+    }
+
+    public void overwriteQueueWithFolder(){
         FileChooser fc = new FileChooser();
         File file = fc.showOpenDialog(null);
 
