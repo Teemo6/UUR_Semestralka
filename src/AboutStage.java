@@ -47,13 +47,12 @@ public class AboutStage {
         try {
             appIcon = new Image(new FileInputStream("src/resources/icon.png"));
             appIconView = new ImageView(appIcon);
-        } catch(Exception e) {
-            System.out.println(e);
-        }
+        } catch(Exception ignored) {}
 
-        Label aboutName = new Label("MediaPlayer - Semestrální práce UUR");
+        Label aboutName = new Label("Přehrávač médií - Semestrální práce UUR");
         Label aboutMe = new Label("Štěpán Faragula, 2022");
         Button btnExit = new Button("Zavřít");
+        btnExit.setOnAction(e -> aboutStage.close());
 
         aboutGrid.add(appIconView, 0,0,2,2);
         aboutGrid.add(aboutName, 2, 0);

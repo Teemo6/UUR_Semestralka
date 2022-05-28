@@ -77,13 +77,17 @@ public class DataModel {
     }
 
     public void overwriteQueueWithFile(File file) throws Exception {
-        Media newMedia = new Media(file.toURI().toString());
+        try {
+            Media newMedia = new Media(file.toURI().toString());
 
-        getFileQueue().clear();
-        resetMediaIndex();
+            getFileQueue().clear();
+            resetMediaIndex();
 
-        getFileQueue().add(newMedia);
-        setMediaPlayerBasedOnIndex();
+            getFileQueue().add(newMedia);
+            setMediaPlayerBasedOnIndex();
+        } catch (Exception e){
+            throw new Exception("Nepovedlo se přečíst soubor");
+        }
     }
 
     public void playOrPause() {

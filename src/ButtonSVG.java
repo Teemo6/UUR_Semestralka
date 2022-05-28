@@ -11,7 +11,13 @@ public class ButtonSVG extends Button {
         super();
 
         setPath(svgPath);
+
+        this.graphicProperty().bind(path);
         this.setAlignment(Pos.CENTER);
+    }
+
+    public void setPath(SVGPath svgPath) {
+        path.set(svgPath);
     }
 
     public SVGPath getPath(){
@@ -20,14 +26,5 @@ public class ButtonSVG extends Button {
 
     public ObjectProperty<SVGPath> pathProperty() {
         return path;
-    }
-
-    public void setPath(SVGPath path) {
-        this.path.set(path);
-        getPath().getStyleClass().add("customButton");;
-        getPath().setScaleX(2);
-        getPath().setScaleY(2);
-
-        this.setGraphic(getPath());
     }
 }

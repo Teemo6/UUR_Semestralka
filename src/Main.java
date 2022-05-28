@@ -3,11 +3,9 @@ import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
-import javafx.beans.value.ChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -19,6 +17,7 @@ import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -32,16 +31,16 @@ public class Main extends Application {
 
     final int SEEK_TIME = 5;
     final int VOLUME_CHANGE = 5;
+    final boolean START_WITH_PLAYLIST_SHOWN = true;
 
     IntegerProperty playerVolume = new SimpleIntegerProperty(100);
-    BooleanProperty isFullscreen = new SimpleBooleanProperty(false);
 
     private Stage rootStage;
     private Scene rootScene;
     private BorderPane borderPane;
 
     // Media
-    private DataModel myMediaPlayer = new DataModel();
+    private DataModel dataModel = new DataModel();
     private ObjectProperty<MediaPlayer> currentMediaPlayer = new SimpleObjectProperty<>();
     private Pane mediaWrapper;
     private MediaView mediaView;
@@ -59,11 +58,14 @@ public class Main extends Application {
     private Region spacer;
     private Button btnFullscreen;
 
+    // Top menu
+    private ButtonMenu hideQueue;
+    private BooleanProperty listVisiblePreference = new SimpleBooleanProperty(START_WITH_PLAYLIST_SHOWN);
+
     // Playlist
     private ListView<Media> playlist;
     private IntegerProperty playlistIndexPlaying = new SimpleIntegerProperty();
     private IntegerProperty playlistIndexSelected = new SimpleIntegerProperty();
-
 
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
@@ -81,81 +83,69 @@ public class Main extends Application {
     private final KeyCombination unrealCombo = new KeyCodeCombination(KeyCode.UNDERSCORE, KeyCombination.CONTROL_DOWN, KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN, KeyCombination.ALT_DOWN, KeyCombination.SHORTCUT_DOWN);
 
     public void updateBinding(MediaPlayer newPlayer){
-            InvalidationListener timeSliderChangeListener = o -> {
-                try {
-                    Duration seekTo = Duration.seconds(timeSlider.getValue());
-                    newPlayer.seek(seekTo);
-                } catch (Exception ignored){}
-            };
+        timeSlider.maxProperty().unbind();
+        timeLabel.textProperty().unbind();
 
-            timeSlider.maxProperty().unbind();
-            timeLabel.textProperty().unbind();
+        timeSlider.setValue(0);
+        timeLabel.setText("00:00:00/00:00:00");
 
-            timeSlider.setValue(0);
-            timeLabel.setText("00:00:00/00:00:00");
+        // Pokud se neprehrava video, zastav se
+        if (newPlayer == null) {
+            return;
+        }
 
-            // Pokud se neprehrava video, zastav se
-            if (newPlayer == null) {
-                return;
-            }
+        // Slider videa
+        timeSlider.maxProperty().bind(Bindings.createDoubleBinding(() -> newPlayer.getTotalDuration().toSeconds(), newPlayer.totalDurationProperty()));
 
-            // Slider videa
-            timeSlider.maxProperty().bind(
-                    Bindings.createDoubleBinding(
-                            () -> newPlayer.getTotalDuration().toSeconds(),
-                            newPlayer.totalDurationProperty())
-            );
+        InvalidationListener timeSliderChangeListener = o -> {
+            try {
+                Duration seekTo = Duration.seconds(timeSlider.getValue());
+                newPlayer.seek(seekTo);
+            } catch (Exception ignored){}
+        };
 
-            timeSlider.valueProperty().addListener(timeSliderChangeListener);
+        timeSlider.valueProperty().addListener(timeSliderChangeListener);
 
-            newPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
-                try {
+        newPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
+            try {
                 timeSlider.valueProperty().removeListener(timeSliderChangeListener);
                 timeSlider.setValue(newPlayer.currentTimeProperty().get().toSeconds());
                 timeSlider.valueProperty().addListener(timeSliderChangeListener);
             } catch (Exception ignored){}
-            });
+        });
 
-            // Label videa
-            timeLabel.textProperty().bind(
-                    Bindings.createStringBinding(() -> {
-                                Duration current = newPlayer.getCurrentTime();
-                                Duration total = newPlayer.getTotalDuration();
-                                return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
-                                        (int) current.toHours(),
-                                        (int) current.toMinutes() % 60,
-                                        (int) current.toSeconds() % 60,
+        // Label videa
+        timeLabel.textProperty().bind(
+                Bindings.createStringBinding(() -> {
+                            Duration current = newPlayer.getCurrentTime();
+                            Duration total = newPlayer.getTotalDuration();
+                            return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
+                                    (int) current.toHours(),
+                                    (int) current.toMinutes() % 60,
+                                    (int) current.toSeconds() % 60,
 
-                                        (int) total.toHours(),
-                                        (int) total.toMinutes() % 60,
-                                        (int) total.toSeconds() % 60);
-                            },
-                            newPlayer.currentTimeProperty()
-                    ));
+                                    (int) total.toHours(),
+                                    (int) total.toMinutes() % 60,
+                                    (int) total.toSeconds() % 60);
+                        },
+                        newPlayer.currentTimeProperty()
+                ));
 
-            // Binding hlasitosti videa na hlasitost prehravace
-            newPlayer.volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume));
+        // Binding hlasitosti videa na hlasitost prehravace
+        newPlayer.volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume));
     }
 
     public void init(){
-        currentMediaPlayer.bind(myMediaPlayer.mediaPlayerProperty());
+        currentMediaPlayer.bind(dataModel.mediaPlayerProperty());
 
         soundSlider.maxProperty().set(100);
         soundSlider.valueProperty().bindBidirectional(playerVolume);
-        soundLabel.textProperty().bind(
-                Bindings.createStringBinding(() ->
-                                String.format("%d%%", playerVolume.get()),
-                        playerVolume
-                ));
-
-
+        soundLabel.textProperty().bind(Bindings.createStringBinding(() -> String.format("%d%%", playerVolume.get()), playerVolume));
 
         // Binding MediaPlayer
-        currentMediaPlayer.addListener((obs, oldVal, newVal) -> {
-                updateBinding(newVal);
-        });
+        currentMediaPlayer.addListener((obs, oldVal, newVal) -> updateBinding(newVal));
 
-        myMediaPlayer.initModel();
+        dataModel.initModel();
     }
 
     @Override
@@ -166,13 +156,13 @@ public class Main extends Application {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) overwriteQueueWithFolder();
             if (openURLCombo.match(e)) LoaderStage.createLoaderStage();
-            if (playPauseCombo.match(e)) myMediaPlayer.playOrPause();
-            if (playForwardCombo.match(e)) myMediaPlayer.moveTime(SEEK_TIME);
-            if (playBackwardCombo.match(e)) myMediaPlayer.moveTime(-SEEK_TIME);
+            if (playPauseCombo.match(e)) dataModel.playOrPause();
+            if (playForwardCombo.match(e)) dataModel.moveTime(SEEK_TIME);
+            if (playBackwardCombo.match(e)) dataModel.moveTime(-SEEK_TIME);
             if (playVolumeUpCombo.match(e)) movePlayerVolume(VOLUME_CHANGE);
             if (playVolumeDownCombo.match(e)) movePlayerVolume(-VOLUME_CHANGE);
-            if (playPreviousCombo.match(e)) myMediaPlayer.playPrevious();
-            if (playNextCombo.match(e)) myMediaPlayer.playNext();
+            if (playPreviousCombo.match(e)) dataModel.playPrevious();
+            if (playNextCombo.match(e)) dataModel.playNext();
             if (playFullscreenCombo.match(e)) switchFullscreen();
             e.consume();
         });
@@ -239,21 +229,19 @@ public class Main extends Application {
         timeControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(20));
         timeControl.setSpacing(10);
 
-        btnPlay = new ButtonSVG(IconSVG.PLAY_RIGHT.getSVGPath());
-        btnPlay.setOnAction(e -> myMediaPlayer.playOrPause());
-
-        myMediaPlayer.isPlayingProperty().addListener((obs, oldVal, newVal) -> {
-            if(newVal)
-                btnPlay.setPath(IconSVG.PAUSE.getSVGPath());
-            else
-                btnPlay.setPath(IconSVG.PLAY_RIGHT.getSVGPath());
-        });
+        btnPlay = new ButtonSVG(new SVGPath());
+        btnPlay.setOnAction(e -> dataModel.playOrPause());
+        btnPlay.pathProperty().bind(Bindings.createObjectBinding(() -> {
+            if (dataModel.isPlayingProperty().get()) return IconSVG.PAUSE.getSVGPath();
+            else return IconSVG.PLAY_RIGHT.getSVGPath();
+        }, dataModel.isPlayingProperty()
+        ));
 
         btnPrev = new ButtonSVG(IconSVG.ARROW_LEFT.getSVGPath());
-        btnPrev.setOnAction(e -> myMediaPlayer.moveTime(-SEEK_TIME));
+        btnPrev.setOnAction(e -> dataModel.moveTime(-SEEK_TIME));
 
         btnNext = new ButtonSVG(IconSVG.ARROW_RIGHT.getSVGPath());
-        btnNext.setOnAction(e -> myMediaPlayer.moveTime(SEEK_TIME));
+        btnNext.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
 
         soundLabel.setStyle("-fx-font-size: 12.0 pt;");
         spacer = new Region();
@@ -279,7 +267,7 @@ public class Main extends Application {
     private Node getPlaylist() {
         VBox playlistWrapper = new VBox();
 
-        playlist = new ListView<>(myMediaPlayer.getFileQueue());
+        playlist = new ListView<>(dataModel.getFileQueue());
         playlist.setPlaceholder(new Label("Není co přehrávat\n Otevřete soubor"));
         playlist.setCellFactory(TextFieldListCell.forListView(new StringConverter<>() {
             @Override
@@ -300,7 +288,7 @@ public class Main extends Application {
             playlist.getFocusModel().focus(playlistIndexPlaying.get());
             playlist.scrollTo(playlistIndexPlaying.get());
         });
-        playlistIndexPlaying.bind(myMediaPlayer.currentMediaProperty());
+        playlistIndexPlaying.bind(dataModel.currentMediaProperty());
 
         HBox playlistButtonWrapper = new HBox();
 
@@ -323,14 +311,14 @@ public class Main extends Application {
         playlistAdd.setOnAction(e -> addFileToQueue());
 
         Button playlistRemove = new ButtonSVG(IconSVG.MINUS.getSVGPath());
-        playlistRemove.setOnAction(e -> myMediaPlayer.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
+        playlistRemove.setOnAction(e -> dataModel.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
 
         HBox playlistOrderWrapper = new HBox();
         Button playlistShuffle = new ButtonSVG(IconSVG.SHUFFLE.getSVGPath());
-        playlistShuffle.setOnAction(e -> myMediaPlayer.shuffleQueue());
+        playlistShuffle.setOnAction(e -> playlistShuffle());
 
         Button playlistSort = new ButtonSVG(IconSVG.SORT.getSVGPath());
-        playlistSort.setOnAction(e -> myMediaPlayer.sortQueue());
+        playlistSort.setOnAction(e -> playlistSort());
 
         playlistMoveWrapper.getChildren().addAll(playlistMoveStart, playlistMoveUp, playlistMoveDown, playlistMoveEnd);
         playlistManageWrapper.getChildren().addAll(playlistAdd, playlistRemove);
@@ -372,15 +360,15 @@ public class Main extends Application {
         Menu playMenu = new Menu("Přehrávání");
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
         playPause.setAccelerator(playPauseCombo);
-        playPause.setOnAction(e -> myMediaPlayer.playOrPause());
+        playPause.setOnAction(e -> dataModel.playOrPause());
 
         MenuItem playForward = new MenuItem("Posun dopředu");
         playForward.setAccelerator(playForwardCombo);
-        playForward.setOnAction(e -> myMediaPlayer.moveTime(SEEK_TIME));
+        playForward.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
 
         MenuItem playBackward = new MenuItem("Posun dozadu");
         playBackward.setAccelerator(playBackwardCombo);
-        playBackward.setOnAction(e -> myMediaPlayer.moveTime(-SEEK_TIME));
+        playBackward.setOnAction(e -> dataModel.moveTime(-SEEK_TIME));
 
         MenuItem playVolumeUp = new MenuItem("Zvýšit hlasitost");
         playVolumeUp.setAccelerator(playVolumeUpCombo);
@@ -390,14 +378,6 @@ public class Main extends Application {
         playVolumeDown.setAccelerator(playVolumeDownCombo);
         playVolumeDown.setOnAction(e -> movePlayerVolume(-VOLUME_CHANGE));
 
-        MenuItem playPrevious = new MenuItem("Předchozí stopa");
-        playPrevious.setAccelerator(playPreviousCombo);
-        playPrevious.setOnAction(e -> myMediaPlayer.playPrevious());
-
-        MenuItem playNext = new MenuItem("Následující stopa");
-        playNext.setAccelerator(playNextCombo);
-        playNext.setOnAction(e -> myMediaPlayer.playNext());
-
         MenuItem playFullscreen = new MenuItem("Celá obrazovka");
         playFullscreen.setAccelerator(playFullscreenCombo);
         playFullscreen.setOnAction(e -> switchFullscreen());
@@ -405,18 +385,56 @@ public class Main extends Application {
         playMenu.getItems().addAll(
                 playPause, playForward, playBackward, new SeparatorMenuItem(),
                 playVolumeUp ,playVolumeDown, new SeparatorMenuItem(),
-                playPrevious, playNext, new SeparatorMenuItem(),
                 playFullscreen
         );
 
-        Menu timerMenu = new Menu("Časovač");
-        Menu application = new Menu("O aplikaci");
+        Menu playlistMenu = new Menu("Seznam");
+        MenuItem playlistAdd = new MenuItem("Přidat do seznamu");
+        playlistAdd.setAccelerator(playPauseCombo);
+        playlistAdd.setOnAction(e -> dataModel.playOrPause());
+
+        MenuItem playlistRemove = new MenuItem("Odebrat ze seznamu");
+        playlistRemove.setAccelerator(playForwardCombo);
+        playlistRemove.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
+
+        MenuItem playlistPrevious = new MenuItem("Předchozí stopa");
+        playlistPrevious.setAccelerator(playPreviousCombo);
+        playlistPrevious.setOnAction(e -> dataModel.playPrevious());
+
+        MenuItem playlistNext = new MenuItem("Následující stopa");
+        playlistNext.setAccelerator(playNextCombo);
+        playlistNext.setOnAction(e -> dataModel.playNext());
+
+        MenuItem playlistSort = new MenuItem("Seřadit");
+        playlistSort.setOnAction(e -> dataModel.playNext());
+
+        MenuItem playlistShuffle = new MenuItem("Zamíchat");
+        playlistShuffle.setOnAction(e -> playlistShuffle());
+
+        playlistMenu.getItems().addAll(
+                playlistAdd ,playlistRemove, new SeparatorMenuItem(),
+                playlistPrevious, playlistNext, new SeparatorMenuItem(),
+                playlistSort, playlistShuffle
+        );
+
+        ButtonMenu timerMenu = new ButtonMenu("Časovač");
+        timerMenu.setOnAction(TimerStage::createTimerStage);
+
+        ButtonMenu aboutApp = new ButtonMenu("O aplikaci");
+        aboutApp.setOnAction(AboutStage::createAboutStage);
+
         Region spacer = new Region();
-        Menu hideQueue = new Menu("Skrýt");
+        hideQueue = new ButtonMenu("");
+        hideQueue.setOnAction(e -> hideQueue());
+        hideQueue.textLabelProperty().bind(Bindings.createStringBinding(() -> {
+                    if(listVisiblePreference.get()) return "Skrýt";
+                    else return "Zobrazit";
+                }, listVisiblePreference
+        ));
 
         spacer.getStyleClass().add("menu-bar");
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        menuBar.getMenus().addAll(openMenu, playMenu, timerMenu, application);
+        menuBar.getMenus().addAll(openMenu, playMenu, playlistMenu, timerMenu, aboutApp);
 
         menuBarWrapper.getChildren().addAll(menuBar, spacer, new MenuBar(hideQueue));
 
@@ -442,9 +460,8 @@ public class Main extends Application {
 
         if(file != null){
             try{
-                myMediaPlayer.overwriteQueueWithFile(file);
+                dataModel.overwriteQueueWithFile(file);
             } catch(Exception e) {
-                e.printStackTrace();
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Otevřít soubor");
                 alert.setHeaderText("Nepodporovaný formát");
@@ -460,7 +477,7 @@ public class Main extends Application {
 
         if(file != null){
             try{
-                myMediaPlayer.overwriteQueueWithFile(file);
+                dataModel.overwriteQueueWithFile(file);
             } catch(Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Otevřít soubor");
@@ -481,7 +498,7 @@ public class Main extends Application {
                 if(selected == -1){
                     selected = 0;
                 }
-                myMediaPlayer.addFileToQueue(file, selected);
+                dataModel.addFileToQueue(file, selected);
             } catch(Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Otevřít soubor");
@@ -495,36 +512,36 @@ public class Main extends Application {
     public void moveFileUp(){
         int selected = playlist.getSelectionModel().getSelectedIndex();
         if(selected != -1) {
-            myMediaPlayer.moveFileLowerOnce(selected);
-            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
-            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+            dataModel.moveFileLowerOnce(selected);
+            playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
+            playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
     public void moveFileDown(){
         int selected = playlist.getSelectionModel().getSelectedIndex();
         if(selected != -1) {
-            myMediaPlayer.moveFileHigherOnce(selected);
-            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
-            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+            dataModel.moveFileHigherOnce(selected);
+            playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
+            playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
     public void moveFileAllWayUp(){
         int selected = playlist.getSelectionModel().getSelectedIndex();
         if(selected != -1) {
-            myMediaPlayer.moveFileToFirst(selected);
-            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
-            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+            dataModel.moveFileToFirst(selected);
+            playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
+            playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
     public void moveFileAllWayDown(){
         int selected = playlist.getSelectionModel().getSelectedIndex();
         if(selected != -1) {
-            myMediaPlayer.moveFileToLast(selected);
-            playlist.getSelectionModel().select(myMediaPlayer.getCurrentMediaIndex());
-            playlist.scrollTo(myMediaPlayer.getCurrentMediaIndex());
+            dataModel.moveFileToLast(selected);
+            playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
+            playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
@@ -532,8 +549,9 @@ public class Main extends Application {
         if(rootStage.isFullScreen()) {
             borderPane.setBottom(getBottomControlBar());
             borderPane.setTop(getTopMenuBar());
-            borderPane.setRight(getPlaylist());
-
+            if(listVisiblePreference.get()) {
+                borderPane.setRight(getPlaylist());
+            }
             rootStage.setFullScreen(false);
         } else {
             borderPane.setBottom(null);
@@ -544,15 +562,31 @@ public class Main extends Application {
         }
     }
 
+    public void hideQueue(){
+        if(borderPane.getRight() == null){
+            borderPane.setRight(getPlaylist());
+            listVisiblePreference.set(true);
+        } else {
+            borderPane.setRight(null);
+            listVisiblePreference.set(false);
+        }
+    }
+
     public void movePlayerVolume(int moveVolume){
         int currentVolume = playerVolume.get();
         if(currentVolume + moveVolume > 100 ) {
             playerVolume.set(100);
-        } else if(currentVolume + moveVolume < 0){
-            playerVolume.set(0);
         } else {
-            playerVolume.set(currentVolume + moveVolume);
+            playerVolume.set(Math.max(currentVolume + moveVolume, 0));
         }
+    }
+
+    public void playlistSort(){
+        dataModel.sortQueue();
+    }
+
+    public void playlistShuffle(){
+        dataModel.shuffleQueue();
     }
 
     public static void main(String[] args) {

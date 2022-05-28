@@ -24,6 +24,9 @@ public enum IconSVG {
     public SVGPath getSVGPath() {
         SVGPath SVGPath = new SVGPath();
         SVGPath.setContent(path);
+        SVGPath.getStyleClass().add("customButton");
+        SVGPath.setScaleX(2);
+        SVGPath.setScaleY(2);
         return SVGPath;
     }
 }

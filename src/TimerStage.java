@@ -81,6 +81,7 @@ public class TimerStage {
         HBox buttonWrapper = new HBox();
         Button btnConfirm = new Button("Ok");
         Button btnCancel = new Button("Zrušit");
+        btnCancel.setOnAction(e -> timerStage.close());
 
         timerGrid.add(timerWhat1Radio, 0, 0);
         timerGrid.add(timerWhat1Label, 1, 0);
