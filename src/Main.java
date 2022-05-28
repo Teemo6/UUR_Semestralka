@@ -3,6 +3,7 @@ import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
+import javafx.beans.value.ChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -79,6 +80,63 @@ public class Main extends Application {
     // tohle omylem nikdo nenakliká, když jo, rozbije si fullscreen :)
     private final KeyCombination unrealCombo = new KeyCodeCombination(KeyCode.UNDERSCORE, KeyCombination.CONTROL_DOWN, KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN, KeyCombination.ALT_DOWN, KeyCombination.SHORTCUT_DOWN);
 
+    public void updateBinding(MediaPlayer newPlayer){
+            InvalidationListener timeSliderChangeListener = o -> {
+                try {
+                    Duration seekTo = Duration.seconds(timeSlider.getValue());
+                    newPlayer.seek(seekTo);
+                } catch (Exception ignored){}
+            };
+
+            timeSlider.maxProperty().unbind();
+            timeLabel.textProperty().unbind();
+
+            timeSlider.setValue(0);
+            timeLabel.setText("00:00:00/00:00:00");
+
+            // Pokud se neprehrava video, zastav se
+            if (newPlayer == null) {
+                return;
+            }
+
+            // Slider videa
+            timeSlider.maxProperty().bind(
+                    Bindings.createDoubleBinding(
+                            () -> newPlayer.getTotalDuration().toSeconds(),
+                            newPlayer.totalDurationProperty())
+            );
+
+            timeSlider.valueProperty().addListener(timeSliderChangeListener);
+
+            newPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
+                try {
+                timeSlider.valueProperty().removeListener(timeSliderChangeListener);
+                timeSlider.setValue(newPlayer.currentTimeProperty().get().toSeconds());
+                timeSlider.valueProperty().addListener(timeSliderChangeListener);
+            } catch (Exception ignored){}
+            });
+
+            // Label videa
+            timeLabel.textProperty().bind(
+                    Bindings.createStringBinding(() -> {
+                                Duration current = newPlayer.getCurrentTime();
+                                Duration total = newPlayer.getTotalDuration();
+                                return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
+                                        (int) current.toHours(),
+                                        (int) current.toMinutes() % 60,
+                                        (int) current.toSeconds() % 60,
+
+                                        (int) total.toHours(),
+                                        (int) total.toMinutes() % 60,
+                                        (int) total.toSeconds() % 60);
+                            },
+                            newPlayer.currentTimeProperty()
+                    ));
+
+            // Binding hlasitosti videa na hlasitost prehravace
+            newPlayer.volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume));
+    }
+
     public void init(){
         currentMediaPlayer.bind(myMediaPlayer.mediaPlayerProperty());
 
@@ -90,60 +148,11 @@ public class Main extends Application {
                         playerVolume
                 ));
 
+
+
         // Binding MediaPlayer
         currentMediaPlayer.addListener((obs, oldVal, newVal) -> {
-            InvalidationListener timeSliderChangeListener = o-> {
-                Duration seekTo = Duration.seconds(timeSlider.getValue());
-                currentMediaPlayer.get().seek(seekTo);
-            };
-
-            timeSlider.valueProperty().removeListener(timeSliderChangeListener);
-            timeLabel.textProperty().unbind();
-            timeSlider.setValue(0);
-            timeLabel.setText("00:00:00/00:00:00");
-
-            // Pokud se neprehrava video, zastav se
-            if(currentMediaPlayer.get() == null){
-                return;
-            }
-
-            // Slider videa
-            currentMediaPlayer.get().setOnReady(() -> {
-                System.out.println("ahoj");
-                timeSlider.maxProperty().bind(
-                        Bindings.createDoubleBinding(
-                                () -> currentMediaPlayer.get().getTotalDuration().toSeconds(),
-                                currentMediaPlayer.get().totalDurationProperty())
-                );
-
-                timeSlider.valueProperty().addListener(timeSliderChangeListener);
-
-                currentMediaPlayer.get().currentTimeProperty().addListener((observable, oldValue, newValue) -> {
-                    timeSlider.valueProperty().removeListener(timeSliderChangeListener);
-                    timeSlider.setValue(newValue.toSeconds());
-                    timeSlider.valueProperty().addListener(timeSliderChangeListener);
-                });
-            });
-
-            // Label videa
-            timeLabel.textProperty().bind(
-                    Bindings.createStringBinding(() -> {
-                                Duration current = currentMediaPlayer.get().getCurrentTime();
-                                Duration total = currentMediaPlayer.get().getTotalDuration();
-                                return String.format("%02d:%02d:%02d / %02d:%02d:%02d",
-                                        (int) current.toHours(),
-                                        (int) current.toMinutes() % 60,
-                                        (int) current.toSeconds() % 60,
-
-                                        (int) total.toHours(),
-                                        (int) total.toMinutes() % 60,
-                                        (int) total.toSeconds() % 60);
-                            },
-                            currentMediaPlayer.get().currentTimeProperty()
-                    ));
-
-            // Binding hlasitosti videa na hlasitost prehravace
-            currentMediaPlayer.get().volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get()/100.0, playerVolume));
+                updateBinding(newVal);
         });
 
         myMediaPlayer.initModel();

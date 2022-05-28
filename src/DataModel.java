@@ -31,7 +31,12 @@ public class DataModel {
         if(mediaQueue.isEmpty()) {
             mediaPlayer.set(null);
         } else {
-            mediaPlayer.set(new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue())));
+            MediaPlayer mp = new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()));
+            mp.setOnReady(() -> {
+                setMediaPlayer(mp);
+                mp.play();
+                isPlaying.set(true);
+            });
         }
     }
 
@@ -50,11 +55,11 @@ public class DataModel {
             resetMediaIndex();
             getMediaPlayer().stop();
             getMediaPlayer().dispose();
+            getMediaPlayer().volumeProperty().unbind();
             getFileQueue().remove(toRemove);
             if(!mediaQueue.isEmpty()){
                 setCurrentMediaIndex(0);
                 setMediaPlayerBasedOnIndex();
-                getMediaPlayer().setOnReady(() -> getMediaPlayer().play());
             } else {
                 setIsPlaying(false);
                 setCurrentMediaIndex(-1);
@@ -79,8 +84,6 @@ public class DataModel {
 
         getFileQueue().add(newMedia);
         setMediaPlayerBasedOnIndex();
-        getMediaPlayer().setOnReady(() -> getMediaPlayer().play());
-        isPlaying.set(true);
     }
 
     public void playOrPause() {
@@ -105,8 +108,6 @@ public class DataModel {
         if(getCurrentMediaIndex() + 1 <= getFileQueue().size() - 1){
             raiseCurrentMediaIndex();
             setMediaPlayerBasedOnIndex();
-            getMediaPlayer().setOnReady(() -> getMediaPlayer().play());
-            isPlaying.set(true);
         }
     }
 
@@ -114,8 +115,6 @@ public class DataModel {
         if(getCurrentMediaIndex() - 1 >= 0){
             lowerCurrentMediaIndex();
             setMediaPlayerBasedOnIndex();
-            getMediaPlayer().setOnReady(() -> getMediaPlayer().play());
-            isPlaying.set(true);
         }
     }
 
@@ -154,10 +153,10 @@ public class DataModel {
     }
 
     public void initModel(){
-        mediaQueue.add(new Media(new File("D:/Anime/Komi Cant Communicate/Komi Cant Communicate Episode 02.mp4").toURI().toString()));
+        mediaQueue.add(new Media(new File("D:/Anime/Fire Force/Enen no Shouboutai Episode 03.mp4").toURI().toString()));
         mediaQueue.add(new Media(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 01.mp4").toURI().toString()));
         mediaQueue.add(new Media("https://www.kiv.zcu.cz/~herout/vyuka/oop/video/oop-04.mp4"));
-        mediaQueue.add(new Media(new File("D:/Anime/Odd Taxi/Odd Taxi Episode 01.mp4").toURI().toString()));
+        mediaQueue.add(new Media(new File("D:/Anime/Happy Sugar Life/Happy Sugar Life Episode 02.mp4").toURI().toString()));
 
         resetMediaIndex();
         setMediaPlayerBasedOnIndex();
