@@ -67,6 +67,9 @@ public class Main extends Application {
     private IntegerProperty playlistIndexPlaying = new SimpleIntegerProperty();
     private IntegerProperty playlistIndexSelected = new SimpleIntegerProperty();
 
+    // Stages
+    private AppearanceStage appearanceStage = AppearanceStage.getInstance();
+
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
     private final KeyCombination openFolderCombo = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
@@ -150,8 +153,13 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage){
-        rootScene = new Scene(getRootPane());
-        rootScene.getStylesheets().add("resources/stylesheet.css");
+        Parent parentMain = getRootPane();
+        parentMain.getStylesheets().addAll("resources/stylesheet.css");
+        ControlsCSS.setParentMain(parentMain);
+        ControlsCSS.parseCSSFile();
+        ControlsCSS.refreshCSS();
+
+        rootScene = new Scene(parentMain);
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) overwriteQueueWithFolder();
@@ -420,6 +428,9 @@ public class Main extends Application {
         ButtonMenu timerMenu = new ButtonMenu("Časovač");
         timerMenu.setOnAction(TimerStage::createTimerStage);
 
+        ButtonMenu appearanceMenu = new ButtonMenu("Vzhled");
+        appearanceMenu.setOnAction(e -> appearanceStage.createAppearanceStage());
+
         ButtonMenu aboutApp = new ButtonMenu("O aplikaci");
         aboutApp.setOnAction(AboutStage::createAboutStage);
 
@@ -434,7 +445,7 @@ public class Main extends Application {
 
         spacer.getStyleClass().add("menu-bar");
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        menuBar.getMenus().addAll(openMenu, playMenu, playlistMenu, timerMenu, aboutApp);
+        menuBar.getMenus().addAll(openMenu, playMenu, playlistMenu, timerMenu, appearanceMenu, aboutApp);
 
         menuBarWrapper.getChildren().addAll(menuBar, spacer, new MenuBar(hideQueue));
 

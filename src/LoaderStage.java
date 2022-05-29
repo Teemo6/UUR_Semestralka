@@ -24,8 +24,12 @@ public class LoaderStage {
         if (loaderStage != null && loaderStage.isShowing()){
             loaderStage.close();
         }
-        loaderScene = new Scene(getLoaderPane());
-        loaderScene.getStylesheets().add("resources/stylesheet.css");
+        Parent parentLoader = getLoaderPane();
+        parentLoader.getStylesheets().addAll("resources/stylesheet.css");
+        ControlsCSS.setParentLoader(parentLoader);
+        ControlsCSS.refreshCSS();
+
+        loaderScene = new Scene(parentLoader);
 
         loaderStage = new Stage();
         loaderStage.setTitle("Otevřít URL");

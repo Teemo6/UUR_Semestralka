@@ -24,8 +24,12 @@ public class TimerStage {
         if (timerStage != null && timerStage.isShowing()){
             timerStage.close();
         }
-        timerScene = new Scene(getTimerPane());
-        timerScene.getStylesheets().add("resources/stylesheet.css");
+        Parent parentTimer = getTimerPane();
+        parentTimer.getStylesheets().addAll("resources/stylesheet.css");
+        ControlsCSS.setParentTimer(parentTimer);
+        ControlsCSS.refreshCSS();
+
+        timerScene = new Scene(parentTimer);
 
         timerStage = new Stage();
         timerStage.setTitle("Časovač");

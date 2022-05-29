@@ -34,7 +34,7 @@ public class DataModel {
             MediaPlayer mp = new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()));
             mp.setOnReady(() -> {
                 setMediaPlayer(mp);
-                mp.play();
+                mp.pause();
                 isPlaying.set(true);
             });
         }

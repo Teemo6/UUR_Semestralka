@@ -1,40 +1,40 @@
-@import url("customColor.css");
+@import "customColor.css";
 
 .root{
-	-fx-background-color: #101010;
+	-fx-background-color: -primaryColor;
 }
 
 .button{
-	-fx-text-fill: -customColor;
-	-fx-background-color: #303030; 
-	-fx-border-color: -customColor;
+	-fx-text-fill: -mainColor;
+	-fx-background-color: -secondaryColor;
+	-fx-border-color: -mainColor;
 	-fx-border-width: 1;
 }
 
 .button:hover{
-	-fx-background-color: #101010;
+	-fx-background-color: -primaryColor;
 	-fx-cursor: hand;
 }
 
 .customButton{
-    -fx-fill: -customColor;
+    -fx-fill: -mainColor;
 }
 
 .text-field{
-    -fx-background-color: #303030;
-    -fx-border-color: -customColor;
+    -fx-background-color: -secondaryColor;
+    -fx-border-color: -mainColor;
     -fx-font-size: 13.0 pt;
-    -fx-text-fill: -customColor;
+    -fx-text-fill: -mainColor;
 }
 
 .text-area{
-    -fx-background-color: #101010;
+    -fx-background-color: -primaryColor;
     -fx-font-size: 13.0 pt;
-    -fx-text-fill: -customColor;
+    -fx-text-fill: -mainColor;
 }
 
 .text-area .content{
-    -fx-background-color: #303030;
+    -fx-background-color: -secondaryColor;
 }
 
 .text-area:focused{
@@ -42,8 +42,8 @@
 }
 
 .check-box .box {
-    -fx-background-color:#101010;
-    -fx-border-color: -customColor;
+    -fx-background-color:-primaryColor;
+    -fx-border-color: -mainColor;
 }
 
 .check-box:hover{
@@ -51,17 +51,17 @@
 }
 
 .check-box:selected .mark {
-    -fx-background-color: -customColor;
+    -fx-background-color: -mainColor;
 }
 
 .label{
     -fx-font-size: 13.0 pt;
-	-fx-text-fill: -customColor;
+	-fx-text-fill: -mainColor;
 }
 
 .slider{
-	-fx-shadow-highlight-color: -customColor;
-	-fx-control-inner-background: -customColor;
+	-fx-shadow-highlight-color: -mainColor;
+	-fx-control-inner-background: -mainColor;
 }
 
 .slider .thumb{
@@ -69,11 +69,11 @@
 }
 
 .radio-button .radio {
-    -fx-background-color: #303030
+    -fx-background-color: -secondaryColor
 }
 
 .radio-button:selected .radio .dot {
-    -fx-background-color: -customColor;
+    -fx-background-color: -mainColor;
 }
 
 .radio:hover{
@@ -81,22 +81,22 @@
 }
 
 .menu-bar, .menu-item, .context-menu {
-    -fx-background-color: #101010;
+    -fx-background-color: -primaryColor;
 }
 
 .menu:hover, .menu:showing{
-    -fx-background: #101010 ;
+    -fx-background: -primaryColor ;
     -fx-opacity: 0.5;
     -fx-cursor: hand;
 }
 
 .menu-item:focused{
-    -fx-background-color: #303030;
+    -fx-background-color: -secondaryColor;
     -fx-cursor: hand;
 }
 
 .list-view{
-    -fx-background-color: #101010;
+    -fx-background-color: -primaryColor;
     -fx-font-size: 11px;
     -fx-background-insets: 0;
     -fx-padding: 0;
@@ -117,11 +117,11 @@
 }
 
 .list-view .list-cell:focused{
-    -fx-text-fill: -customColor;
+    -fx-text-fill: -mainColor;
 }
 
 .list-view .list-cell:selected{
-    -fx-background-color: #303030;
+    -fx-background-color: -secondaryColor;
 }
 
 .list-view .list-cell {
@@ -129,11 +129,11 @@
 }
 
 .list-cell {
-    -fx-background-color: #101010;
+    -fx-background-color: -primaryColor;
 }
 
 .list-cell:filled:hover {
-    -fx-background-color: #303030;
+    -fx-background-color: -secondaryColor;
 }
 
 .list-view .scroll-bar:vertical, .list-view .scroll-bar:vertical .increment-button, .list-view .scroll-bar:vertical .decrement-button,
@@ -144,12 +144,39 @@
 
 .list-view .scroll-bar:vertical .increment-button, .list-view .scroll-bar:vertical .decrement-button,
 .list-view .scroll-bar:horizontal .increment-button, .list-view .scroll-bar:horizontal .decrement-button{
-    -fx-background-color: #101010
+    -fx-background-color: -primaryColor
 }
 
 .list-view .scroll-bar:vertical .thumb,
 .list-view .scroll-bar:horizontal .thumb{
     -fx-background-insets: 5, 5, 5, 5;
     -fx-background-radius: 5;
-    -fx-background-color: #303030;
+    -fx-background-color: -secondaryColor;
+}
+
+.toggle-button,
+.toggle-button:focused{
+    -fx-background-color: -primaryColor;
+    -fx-text-fill: -mainColor;
+    -fx-border-color: -mainColor;
+}
+
+.toggle-button:selected,
+.toggle-button:selected:focused {
+    -fx-background-color: -secondaryColor;
+}
+
+.color-palette-region {
+    -fx-background-color: -primaryColor;
+}
+
+.color-picker {
+    -fx-background-color: -secondaryColor;
+    -fx-border-color: -mainColor;
+    -fx-padding: 0;
+    -fx-background-insets: 0, 1;
+}
+
+.color-picker .color-picker-label .text {
+    -fx-text-color: -primaryColor;
 }

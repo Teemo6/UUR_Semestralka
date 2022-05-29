@@ -23,8 +23,12 @@ public class AboutStage {
         if (aboutStage != null && aboutStage.isShowing()){
             aboutStage.close();
         }
-        aboutScene = new Scene(getAboutPane());
-        aboutScene.getStylesheets().add("resources/stylesheet.css");
+        Parent parentAbout = getAboutPane();
+        parentAbout.getStylesheets().addAll("resources/stylesheet.css");
+        ControlsCSS.setParentAbout(parentAbout);
+        ControlsCSS.refreshCSS();
+
+        aboutScene = new Scene(parentAbout);
 
         aboutStage = new Stage();
         aboutStage.setTitle("O aplikaci");
