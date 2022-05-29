@@ -53,6 +53,8 @@ public class Main extends Application {
     private ButtonSVG btnPlay;
     private ButtonSVG btnPrev;
     private ButtonSVG btnNext;
+    private ButtonSVG btnPrevFile;
+    private ButtonSVG btnNextFile;
     private Slider soundSlider = new Slider();
     private Label soundLabel = new Label();
     private Region spacer;
@@ -69,6 +71,9 @@ public class Main extends Application {
 
     // Stages
     private AppearanceStage appearanceStage = AppearanceStage.getInstance();
+    private TimerStage timerStage = TimerStage.getInstance();
+    private LoaderStage loaderStage = LoaderStage.getInstance();
+    private AboutStage aboutStage = AboutStage.getInstance();
 
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
@@ -163,7 +168,7 @@ public class Main extends Application {
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) overwriteQueueWithFolder();
-            if (openURLCombo.match(e)) LoaderStage.createLoaderStage();
+            if (openURLCombo.match(e)) loaderStage.createLoaderStage();
             if (playPauseCombo.match(e)) dataModel.playOrPause();
             if (playForwardCombo.match(e)) dataModel.moveTime(SEEK_TIME);
             if (playBackwardCombo.match(e)) dataModel.moveTime(-SEEK_TIME);
@@ -251,12 +256,25 @@ public class Main extends Application {
         btnNext = new ButtonSVG(IconSVG.ARROW_RIGHT.getSVGPath());
         btnNext.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
 
+        btnPrevFile = new ButtonSVG(IconSVG.FORWARD_LEFT.getSVGPath());
+        btnPrevFile.setOnAction(e -> dataModel.playPrevious());
+
+        btnNextFile = new ButtonSVG(IconSVG.FORWARD_RIGHT.getSVGPath());
+        btnNextFile.setOnAction(e -> dataModel.playNext());
+
         soundLabel.setStyle("-fx-font-size: 12.0 pt;");
         spacer = new Region();
+
+
+        ButtonSVG btnTimer = new ButtonSVG(IconSVG.CLOCK.getSVGPath());
+        btnTimer.getStyleClass().add("disButton");
+        btnTimer.disableProperty().bind(ControlsTimer.timerRunning.not());
+
+
         btnFullscreen = new ButtonSVG(IconSVG.FULLSCREEN.getSVGPath());
         btnFullscreen.setOnAction(e -> switchFullscreen());
 
-        playControl.getChildren().addAll(btnPlay, btnPrev, btnNext, soundSlider, soundLabel, spacer, btnFullscreen);
+        playControl.getChildren().addAll(btnPlay, btnPrev, btnNext, btnPrevFile, btnNextFile, soundSlider, soundLabel, spacer, btnTimer, btnFullscreen);
         playControl.getChildren().forEach(n -> ((Region)n).setPrefWidth(30));
         playControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(30));
         soundSlider.setPrefWidth(100);
@@ -362,7 +380,7 @@ public class Main extends Application {
 
         MenuItem openURL = new MenuItem("Otevřít URL");
         openURL.setAccelerator(openURLCombo);
-        openURL.setOnAction(e -> LoaderStage.createLoaderStage());
+        openURL.setOnAction(e -> loaderStage.createLoaderStage());
         openMenu.getItems().addAll(openFile, openFolder, openURL);
 
         Menu playMenu = new Menu("Přehrávání");
@@ -426,13 +444,13 @@ public class Main extends Application {
         );
 
         ButtonMenu timerMenu = new ButtonMenu("Časovač");
-        timerMenu.setOnAction(TimerStage::createTimerStage);
+        timerMenu.setOnAction(e -> timerStage.createTimerStage());
 
         ButtonMenu appearanceMenu = new ButtonMenu("Vzhled");
         appearanceMenu.setOnAction(e -> appearanceStage.createAppearanceStage());
 
         ButtonMenu aboutApp = new ButtonMenu("O aplikaci");
-        aboutApp.setOnAction(AboutStage::createAboutStage);
+        aboutApp.setOnAction(e -> aboutStage.createAboutStage());
 
         Region spacer = new Region();
         hideQueue = new ButtonMenu("");
@@ -558,6 +576,8 @@ public class Main extends Application {
 
     public void switchFullscreen(){
         if(rootStage.isFullScreen()) {
+            mediaWrapper.getStyleClass().remove("mediaBackground");
+
             borderPane.setBottom(getBottomControlBar());
             borderPane.setTop(getTopMenuBar());
             if(listVisiblePreference.get()) {
@@ -565,6 +585,8 @@ public class Main extends Application {
             }
             rootStage.setFullScreen(false);
         } else {
+            mediaWrapper.getStyleClass().add("mediaBackground");
+
             borderPane.setBottom(null);
             borderPane.setTop(null);
             borderPane.setRight(null);

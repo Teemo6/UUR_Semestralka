@@ -4,6 +4,10 @@
 	-fx-background-color: -primaryColor;
 }
 
+.mediaBackground{
+    -fx-background-color: #101010;
+}
+
 .button{
 	-fx-text-fill: -mainColor;
 	-fx-background-color: -secondaryColor;
@@ -20,11 +24,45 @@
     -fx-fill: -mainColor;
 }
 
+.customButton:disabled{
+	-fx-fill: -secondaryColor;
+}
+
+.disButton{
+    -fx-fill: -mainColor;
+	-fx-background-color: -primaryColor;
+	-fx-border-color: -primaryColor;
+}
+
+.disButton:hover{
+	-fx-cursor: default;
+}
+
+.time-field{
+    -fx-background-color:-secondaryColor;
+    -fx-border-color:-mainColor;
+    -fx-border-width:1;
+}
+
+.time-field:disabled{
+    -fx-opacity:0.5;
+}
+
+.time-field-text-field:focused{
+    -fx-background-color:transparent;
+}
+
+.time-field-text-field:disabled{
+    -fx-background-color:transparent;
+}
+
 .text-field{
     -fx-background-color: -secondaryColor;
     -fx-border-color: -mainColor;
     -fx-font-size: 13.0 pt;
     -fx-text-fill: -mainColor;
+    -fx-padding: 0px;
+    -fx-alignment: BASELINE_CENTER;
 }
 
 .text-area{
@@ -65,7 +103,7 @@
 }
 
 .slider .thumb{
-    -fx-background-color: #dfdfdf;
+    -fx-background-color: -tertiaryColor;
 }
 
 .radio-button .radio {
@@ -125,7 +163,7 @@
 }
 
 .list-view .list-cell {
-    -fx-text-fill: #a0a0a0;
+    -fx-text-fill: -tertiaryColor;
 }
 
 .list-cell {

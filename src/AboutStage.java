@@ -13,13 +13,19 @@ import javafx.stage.Stage;
 import java.io.FileInputStream;
 
 public class AboutStage {
+    private static final AboutStage INSTANCE = new AboutStage();
+
     private static final double ABOUT_WINDOW_MIN_WIDTH = 350;
     private static final double ABOUT_WINDOW_MIN_HEIGHT = 200;
 
     private static Stage aboutStage;
     private static Scene aboutScene;
 
-    public static void createAboutStage(ActionEvent a){
+    public static AboutStage getInstance(){
+        return INSTANCE;
+    }
+
+    public void createAboutStage(){
         if (aboutStage != null && aboutStage.isShowing()){
             aboutStage.close();
         }
@@ -40,7 +46,7 @@ public class AboutStage {
         aboutStage.show();
     }
 
-    private static Parent getAboutPane() {
+    private Parent getAboutPane() {
         VBox aboutWrapper = new VBox();
 
         GridPane aboutGrid = new GridPane();

@@ -10,6 +10,9 @@ public class ControlsCSS {
     public static ObjectProperty<Color> mainColor = new SimpleObjectProperty<>();
     public static BooleanProperty darkMode = new SimpleBooleanProperty();
 
+    private static Color previewColor;
+    private static Boolean previewMode;
+
     private static String styleCSS;
 
     private static Parent parentMain;
@@ -48,9 +51,11 @@ public class ControlsCSS {
 
     public static void parseCSSFile(){
         setMainColor(parseColor("-maincolor"));
+        previewColor = getMainColor();
 
         Color isDark = Color.valueOf("#101010");
         setDarkMode(isDark.equals(parseColor("-primarycolor")));
+        previewMode = getDarkMode();
     }
 
     public static void setStyleCSS(String style){
@@ -99,5 +104,21 @@ public class ControlsCSS {
 
     public static void setDarkMode(boolean darkMode) {
         ControlsCSS.darkMode.set(darkMode);
+    }
+
+    public static Color getPreviewColor() {
+        return previewColor;
+    }
+
+    public static void setPreviewColor(Color previewColor) {
+        ControlsCSS.previewColor = previewColor;
+    }
+
+    public static Boolean getPreviewMode() {
+        return previewMode;
+    }
+
+    public static void setPreviewMode(Boolean previewMode) {
+        ControlsCSS.previewMode = previewMode;
     }
 }

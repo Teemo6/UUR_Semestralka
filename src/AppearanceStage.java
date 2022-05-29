@@ -11,6 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -28,7 +29,6 @@ public class AppearanceStage {
 
     private ObjectProperty<Color> mainColorPreference = new SimpleObjectProperty<>();
     private BooleanProperty darkModePreference = new SimpleBooleanProperty();
-    private StringProperty previewStyle = new SimpleStringProperty();
 
     public static AppearanceStage getInstance(){
         return INSTANCE;
@@ -54,19 +54,11 @@ public class AppearanceStage {
         appearanceStage.setResizable(false);
         appearanceStage.show();
 
-        mainColorPreference.set(ControlsCSS.getMainColor());
+        mainColorPreference.set(ControlsCSS.getPreviewColor());
         ControlsCSS.mainColorProperty().bind(mainColorPreference);
 
-        darkModePreference.set(ControlsCSS.getDarkMode());
+        darkModePreference.set(ControlsCSS.getPreviewMode());
         ControlsCSS.darkModeProperty().bind(darkModePreference);
-
-        appearanceStage.setOnCloseRequest(e -> {
-            ControlsCSS.mainColorProperty().unbind();
-            ControlsCSS.setMainColor(getMainColorPreference());
-
-            ControlsCSS.darkMode.unbind();
-            ControlsCSS.setDarkMode(isDarkModePreference());
-        });
     }
 
     private Parent getAppearancePane() {
@@ -83,7 +75,8 @@ public class AppearanceStage {
         HBox buttonWrapper = new HBox();
         Button btnConfirm = new Button("Použít");
         btnConfirm.setOnAction(e -> overwriteFile());
-        Button btnCancel = new Button("Odejít");
+        Button btnCancel = new Button("Zavřít");
+        btnCancel.setOnAction(e -> appearanceStage.close());
 
         colorGrid.add(colorLabel, 0, 0);
         colorGrid.add(colorPicker, 1, 0);
@@ -114,18 +107,16 @@ public class AppearanceStage {
             outputText.append(colorToHex(mainColorPreference.get()));
             previewText.append(colorToHex(mainColorPreference.get()));
             if(darkModePreference.get()){
-                outputText.append(";-primaryColor:#101010;-secondaryColor:#303030}");
-                previewText.append(";-primaryColor:#101010;-secondaryColor:#303030");
+                outputText.append(";-primaryColor:#101010;-secondaryColor:#303030;-tertiaryColor:#A0A0A0}");
+                previewText.append(";-primaryColor:#101010;-secondaryColor:#303030;-tertiaryColor:#A0A0A0");
             } else {
-                outputText.append(";-primaryColor:#FFFFFF;-secondaryColor:#DDDDDD}");
-                previewText.append(";-primaryColor:#FFFFFF;-secondaryColor:#DDDDDD");
+                outputText.append(";-primaryColor:#FFFFFF;-secondaryColor:#DDDDDD;-tertiaryColor:#606060}");
+                previewText.append(";-primaryColor:#FFFFFF;-secondaryColor:#DDDDDD;-tertiaryColor:#606060");
             }
             myWriter.write(outputText.toString());
             myWriter.close();
 
-            previewStyle.set(previewText.toString());
-
-            ControlsCSS.setStyleCSS(previewStyle.get());
+            ControlsCSS.setStyleCSS(previewText.toString());
             ControlsCSS.refreshCSS();
         } catch (Exception e) {
             e.printStackTrace();

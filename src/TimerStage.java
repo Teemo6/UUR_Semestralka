@@ -1,7 +1,9 @@
-import javafx.event.ActionEvent;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -12,15 +14,26 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class TimerStage {
+    private static final TimerStage INSTANCE = new TimerStage();
+
     private static final double TIMER_WINDOW_MIN_WIDTH = 350;
     private static final double TIMER_WINDOW_MIN_HEIGHT = 300;
 
     private static Stage timerStage;
     private static Scene timerScene;
 
-    public static void createTimerStage(ActionEvent a){
+    GridPane timerGrid;
+
+    private BooleanProperty timerRunning = new SimpleBooleanProperty();
+
+    public static TimerStage getInstance(){
+        return INSTANCE;
+    }
+
+    public void createTimerStage(){
         if (timerStage != null && timerStage.isShowing()){
             timerStage.close();
         }
@@ -39,18 +52,28 @@ public class TimerStage {
         timerStage.getIcons().add(new Image("/resources/icon.png"));
         timerStage.setResizable(false);
         timerStage.show();
+
+        timerRunning.set(ControlsTimer.isTimerRunning());
     }
 
-    private static Parent getTimerPane() {
+    private Parent getTimerPane() {
         VBox timerWrapper = new VBox();
 
         HBox timerState = new HBox();
-        CheckBox timerStateCheckbox = new CheckBox();
         Label timerStateLabel = new Label("Zapnout");
         timerStateLabel.setFont(Font.font(13));
+        CheckBox timerStateCheckbox = new CheckBox();
+        timerStateCheckbox.selectedProperty().bindBidirectional(timerRunning);
+        timerRunning.addListener((obs, oldVal, newVal) -> {
+            if(isTimerRunning()) timerGrid.setDisable(false);
+            else timerGrid.setDisable(true);
+
+        });
+
         timerState.getChildren().addAll(timerStateCheckbox, timerStateLabel);
 
-        GridPane timerGrid = new GridPane();
+        timerGrid = new GridPane();
+        if(!isTimerRunning()) timerGrid.setDisable(true);
 
         // Co se udělá
         RadioButton timerWhat1Radio = new RadioButton();
@@ -63,24 +86,24 @@ public class TimerStage {
         timerWhat2Label.setFont(Font.font(13));
 
         RadioButton timerWhat3Radio = new RadioButton();
-        Label timerWhat3Label = new Label("Zastavit přehrávání");
+        Label timerWhat3Label = new Label("Zavřít program");
         timerWhat3Label.setFont(Font.font(13));
 
         // Kdy se to udělá
         RadioButton timerWhen1Radio = new RadioButton();
-        Label timerWhen1Label = new Label("Po uplynutí zadaného času");
+        Label timerWhen1Label = new Label("Po uplynutí času");
         timerWhen1Label.setFont(Font.font(13));
-        TextField timerWhen1Textfield = new TextField("00:00:00");
-        timerWhen1Textfield.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
-        timerWhen1Textfield.setPrefWidth(65);
+        TimeField timerWhen1Timefield = new TimeField();
+        timerWhen1Timefield.setPrefWidth(84);
+        timerWhen1Timefield.setFieldPrefWidth();
         timerWhen1Radio.setSelected(true);
 
         RadioButton timerWhen2Radio = new RadioButton();
         Label timerWhen2Label = new Label("V zadanám čase");
         timerWhen2Label.setFont(Font.font(13));
-        TextField timerWhen2Textfield = new TextField("00:00:00");
-        timerWhen2Textfield.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
-        timerWhen2Textfield.setPrefWidth(60);
+        TimeField timerWhen2Timefield = new TimeField();
+        timerWhen2Timefield.setPrefWidth(84);
+        timerWhen2Timefield.setFieldPrefWidth();
 
         HBox buttonWrapper = new HBox();
         Button btnConfirm = new Button("Ok");
@@ -98,10 +121,10 @@ public class TimerStage {
 
         timerGrid.add(timerWhen1Radio, 0, 4);
         timerGrid.add(timerWhen1Label, 1, 4);
-        timerGrid.add(timerWhen1Textfield, 2, 4);
+        timerGrid.add(timerWhen1Timefield, 2, 4);
         timerGrid.add(timerWhen2Radio, 0, 5);
         timerGrid.add(timerWhen2Label, 1, 5);
-        timerGrid.add(timerWhen2Textfield, 2, 5);
+        timerGrid.add(timerWhen2Timefield, 2, 5);
 
         ToggleGroup groupWhat = new ToggleGroup();
         groupWhat.getToggles().addAll(timerWhat1Radio, timerWhat2Radio, timerWhat3Radio);
@@ -127,5 +150,17 @@ public class TimerStage {
         timerWrapper.setSpacing(10);
 
         return timerWrapper;
+    }
+
+    public boolean isTimerRunning() {
+        return timerRunning.get();
+    }
+
+    public BooleanProperty timerRunningProperty() {
+        return timerRunning;
+    }
+
+    public void setTimerRunning(boolean timerRunning) {
+        this.timerRunning.set(timerRunning);
     }
 }

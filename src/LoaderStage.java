@@ -14,13 +14,19 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 public class LoaderStage {
+    private static final LoaderStage INSTANCE = new LoaderStage();
+
     private final static double LOADER_WINDOW_MIN_WIDTH = 500;
     private final static double LOADER_WINDOW_MIN_HEIGHT = 400;
 
     private static Stage loaderStage;
     private static Scene loaderScene;
 
-    public static void createLoaderStage(){
+    public static LoaderStage getInstance(){
+        return INSTANCE;
+    }
+
+    public void createLoaderStage(){
         if (loaderStage != null && loaderStage.isShowing()){
             loaderStage.close();
         }
@@ -40,7 +46,7 @@ public class LoaderStage {
         loaderStage.show();
     }
 
-    private static Parent getLoaderPane() {
+    private Parent getLoaderPane() {
         BorderPane loaderWrapper = new BorderPane();
 
         Label tutorLabel = new Label("Zadejte libovolný počet URL oddělené klávesou ENTER");
