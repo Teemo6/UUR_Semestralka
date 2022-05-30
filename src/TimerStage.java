@@ -1,9 +1,7 @@
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
-import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -14,20 +12,34 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
+import javafx.util.Duration;
+
+import java.util.Calendar;
 
 public class TimerStage {
     private static final TimerStage INSTANCE = new TimerStage();
 
-    private static final double TIMER_WINDOW_MIN_WIDTH = 350;
-    private static final double TIMER_WINDOW_MIN_HEIGHT = 300;
+    private final double TIMER_WINDOW_MIN_WIDTH = 350;
+    private final double TIMER_WINDOW_MIN_HEIGHT = 300;
 
-    private static Stage timerStage;
-    private static Scene timerScene;
+    private final String RADIO_WHAT_1 = "Zapnout přehrávání";
+    private final String RADIO_WHAT_2 = "Zastavit přehrávání";
+    private final String RADIO_WHAT_3 = "Zavřít program";
+    private final String RADIO_WHEN_1 = "Po uplynutí času";
+    private final String RADIO_WHEN_2 = "V zadanám čase";
 
-    GridPane timerGrid;
+    private Stage timerStage;
+    private Scene timerScene;
+
+    private TimeField timerWhen1Timefield;
+    private TimeField timerWhen2Timefield;
+
+    private GridPane timerGrid;
 
     private BooleanProperty timerRunning = new SimpleBooleanProperty();
+    private TimerAction timerAction;
+    private boolean timerCountdown;
+    private Duration timerDuration;
 
     public static TimerStage getInstance(){
         return INSTANCE;
@@ -53,7 +65,9 @@ public class TimerStage {
         timerStage.setResizable(false);
         timerStage.show();
 
-        timerRunning.set(ControlsTimer.isTimerRunning());
+        setTimerRunning(ControlsTimer.isTimerRunning());
+        timerAction = ControlsTimer.timerAction;
+        timerCountdown = true;
     }
 
     private Parent getTimerPane() {
@@ -77,74 +91,74 @@ public class TimerStage {
 
         // Co se udělá
         RadioButton timerWhat1Radio = new RadioButton();
-        Label timerWhat1Label = new Label("Zapnout přehrávání");
-        timerWhat1Label.setFont(Font.font(13));
+        timerWhat1Radio.setText(RADIO_WHAT_1);
         timerWhat1Radio.setSelected(true);
 
         RadioButton timerWhat2Radio = new RadioButton();
-        Label timerWhat2Label = new Label("Zastavit přehrávání");
-        timerWhat2Label.setFont(Font.font(13));
+        timerWhat2Radio.setText(RADIO_WHAT_2);
 
         RadioButton timerWhat3Radio = new RadioButton();
-        Label timerWhat3Label = new Label("Zavřít program");
-        timerWhat3Label.setFont(Font.font(13));
+        timerWhat3Radio.setText(RADIO_WHAT_3);
 
         // Kdy se to udělá
         RadioButton timerWhen1Radio = new RadioButton();
-        Label timerWhen1Label = new Label("Na konci stopy");
-        timerWhen1Label.setFont(Font.font(13));
+        timerWhen1Radio.setText(RADIO_WHEN_1);
         timerWhen1Radio.setSelected(true);
+        timerWhen1Timefield = new TimeField();
+        timerWhen1Timefield.setPrefWidth(84);
+        timerWhen1Timefield.setFieldPrefWidth();
+        timerWhen1Timefield.disableProperty().bind(timerWhen1Radio.selectedProperty().not());
 
         RadioButton timerWhen2Radio = new RadioButton();
-        Label timerWhen2Label = new Label("Po uplynutí času");
-        timerWhen2Label.setFont(Font.font(13));
-        TimeField timerWhen2Timefield = new TimeField();
+        timerWhen2Radio.setText(RADIO_WHEN_2);
+        timerWhen2Timefield = new TimeField();
         timerWhen2Timefield.setPrefWidth(84);
         timerWhen2Timefield.setFieldPrefWidth();
         timerWhen2Timefield.disableProperty().bind(timerWhen2Radio.selectedProperty().not());
 
-        RadioButton timerWhen3Radio = new RadioButton();
-        Label timerWhen3Label = new Label("V zadanám čase");
-        timerWhen3Label.setFont(Font.font(13));
-        TimeField timerWhen3Timefield = new TimeField();
-        timerWhen3Timefield.setPrefWidth(84);
-        timerWhen3Timefield.setFieldPrefWidth();
-        timerWhen3Timefield.disableProperty().bind(timerWhen3Radio.selectedProperty().not());
-
         HBox buttonWrapper = new HBox();
-        Button btnConfirm = new Button("Ok");
-        Button btnCancel = new Button("Zrušit");
-        btnCancel.setOnAction(e -> timerStage.close());
+        Button btnConfirm = new Button("Nastavit");
+        btnConfirm.setOnAction(e -> setTimerAction());
+        Button btnExit = new Button("Odejít");
+        btnExit.setOnAction(e -> timerStage.close());
 
         timerGrid.add(timerWhat1Radio, 0, 0);
-        timerGrid.add(timerWhat1Label, 1, 0);
         timerGrid.add(timerWhat2Radio, 0, 1);
-        timerGrid.add(timerWhat2Label, 1, 1);
         timerGrid.add(timerWhat3Radio, 0, 2);
-        timerGrid.add(timerWhat3Label, 1, 2);
 
         timerGrid.add(new Separator(), 0, 3, GridPane.REMAINING, 1);
 
         timerGrid.add(timerWhen1Radio, 0, 4);
-        timerGrid.add(timerWhen1Label, 1, 4);
+        timerGrid.add(timerWhen1Timefield, 2, 4);
         timerGrid.add(timerWhen2Radio, 0, 5);
-        timerGrid.add(timerWhen2Label, 1, 5);
         timerGrid.add(timerWhen2Timefield, 2, 5);
-        timerGrid.add(timerWhen3Radio, 0, 6);
-        timerGrid.add(timerWhen3Label, 1, 6);
-        timerGrid.add(timerWhen3Timefield, 2, 6);
 
         ToggleGroup groupWhat = new ToggleGroup();
         groupWhat.getToggles().addAll(timerWhat1Radio, timerWhat2Radio, timerWhat3Radio);
+        groupWhat.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
+            RadioButton selectedButton = (RadioButton) groupWhat.getSelectedToggle();
+            switch (selectedButton.getText()) {
+                case RADIO_WHAT_1 -> timerAction = TimerAction.START_PLAYING;
+                case RADIO_WHAT_2 -> timerAction = TimerAction.STOP_PLAYING;
+                case RADIO_WHAT_3 -> timerAction = TimerAction.CLOSE_PROGRAM;
+            }
+        });
 
         ToggleGroup groupWhen = new ToggleGroup();
-        groupWhen.getToggles().addAll(timerWhen1Radio, timerWhen2Radio, timerWhen3Radio);
+        groupWhen.getToggles().addAll(timerWhen1Radio, timerWhen2Radio);
+        groupWhen.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
+            RadioButton selectedButton = (RadioButton) groupWhen.getSelectedToggle();
+            switch (selectedButton.getText()) {
+                case RADIO_WHEN_1 -> timerCountdown = true;
+                case RADIO_WHEN_2 -> timerCountdown = false;
+            }
+        });
 
         timerState.setPadding(new Insets(10, 0, 0, 10));
         timerState.setSpacing(5);
 
-        buttonWrapper.getChildren().addAll(btnConfirm, btnCancel);
-        buttonWrapper.getChildren().forEach(n -> ((Region)n).setPrefWidth(100));
+        buttonWrapper.getChildren().addAll(btnConfirm, btnExit);
+        buttonWrapper.getChildren().forEach(n -> ((Region)n).setPrefWidth(90));
         buttonWrapper.getChildren().forEach(n -> ((Region)n).setPrefHeight(20));
         buttonWrapper.setSpacing(10);
         buttonWrapper.setPadding(new Insets(10, 0, 10, 0));
@@ -158,6 +172,40 @@ public class TimerStage {
         timerWrapper.setSpacing(10);
 
         return timerWrapper;
+    }
+
+    public void setTimerAction(){
+        if(isTimerRunning()) {
+            Duration calculated = calculateDuration();
+
+            ControlsTimer.timerAction = timerAction;
+            ControlsTimer.setTimer(calculated);
+        } else {
+            ControlsTimer.clearTimer();
+        }
+    }
+
+    private Duration calculateDuration(){
+        Duration outputTime;
+        if(timerCountdown){
+            outputTime = timerWhen1Timefield.getDuration();
+            if(outputTime.toSeconds() == 0) outputTime = new Duration(1);
+        }else{
+            Calendar calendar = Calendar.getInstance();
+            double hours = calendar.get(Calendar.HOUR_OF_DAY) * 3600;
+            double minutes = calendar.get(Calendar.MINUTE) * 60;
+            double seconds = calendar.get(Calendar.SECOND);
+            double currentTime = hours + minutes + seconds;
+
+            if(timerWhen2Timefield.getDuration().toSeconds() < currentTime){
+                double newTime = 86400 + timerWhen2Timefield.getDuration().toSeconds() - currentTime;
+                outputTime = Duration.seconds(newTime);
+            } else {
+                double newTime = timerWhen2Timefield.getDuration().toSeconds() - currentTime;
+                outputTime = Duration.seconds(newTime);
+            }
+        }
+        return outputTime;
     }
 
     public boolean isTimerRunning() {

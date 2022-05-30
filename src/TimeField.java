@@ -3,14 +3,14 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.HBox;
+import javafx.util.Duration;
+
 import java.util.regex.Pattern;
 
 public class TimeField extends HBox{
     private StringProperty value1 = new SimpleStringProperty();
     private StringProperty value2 = new SimpleStringProperty();
     private StringProperty value3 = new SimpleStringProperty();
-
-    public StringProperty valueProperty = new SimpleStringProperty();
 
     public TimeField(){
         super();
@@ -28,7 +28,7 @@ public class TimeField extends HBox{
         value3.bind(time3.textProperty());
 
         String regexHours = "(2?[0-3]?)|([01]?[0-9]?)";
-        String regexOther = "([0-5][0-9]?)";
+        String regexOther = "([0-5]?[0-9]?)";
         Pattern patternHours = Pattern.compile(regexHours);
         Pattern patternOther = Pattern.compile(regexOther);
 
@@ -51,6 +51,26 @@ public class TimeField extends HBox{
         this.getChildren().forEach(e -> {
             if(e instanceof TextField) ((TextField) e).setPrefWidth(this.getPrefWidth() / 3);
         });
+    }
+
+    public Duration getDuration(){
+        int finalDuration = getHoursInSeconds() + getMinutesInSeconds() + getSeconds();
+        return Duration.seconds(finalDuration);
+    }
+
+    public int getHoursInSeconds(){
+        if(!value1.get().equals("")) return Integer.parseInt(value1.get()) * 3600;
+        return 0;
+    }
+
+    public int getMinutesInSeconds(){
+        if(!value2.get().equals("")) return Integer.parseInt(value2.get()) * 60;
+        return 0;
+    }
+
+    public int getSeconds(){
+        if(!value3.get().equals("")) return Integer.parseInt(value3.get());
+        return 0;
     }
 
     private void registerListener(TextField tf1, TextField tf2) {

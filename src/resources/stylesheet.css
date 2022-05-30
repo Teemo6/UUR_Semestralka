@@ -106,6 +106,11 @@
     -fx-background-color: -tertiaryColor;
 }
 
+.radio-button{
+    -fx-font-size: 13.0 pt;
+	-fx-text-fill: -mainColor;
+}
+
 .radio-button .radio {
     -fx-background-color: -secondaryColor
 }

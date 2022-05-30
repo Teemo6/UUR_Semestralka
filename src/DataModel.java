@@ -6,6 +6,7 @@ import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -34,8 +35,7 @@ public class DataModel {
             MediaPlayer mp = new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()));
             mp.setOnReady(() -> {
                 setMediaPlayer(mp);
-                mp.pause();
-                isPlaying.set(true);
+                forcePlay();
             });
         }
     }
@@ -90,6 +90,25 @@ public class DataModel {
         }
     }
 
+    public ArrayList<File> overwriteQueueWithFolder(File[] files){
+        ArrayList<File> unloaded = new ArrayList<>();
+
+        getFileQueue().clear();
+        resetMediaIndex();
+
+        for(File f : files){
+            try {
+                Media newMedia = new Media(f.toURI().toString());
+
+                getFileQueue().add(newMedia);
+            } catch (Exception ignored){
+                unloaded.add(f);
+            }
+        }
+        setMediaPlayerBasedOnIndex();
+        return unloaded;
+    }
+
     public void playOrPause() {
         if (getMediaPlayer() != null){
             if (isPlaying.get()) {
@@ -99,6 +118,20 @@ public class DataModel {
                 getMediaPlayer().play();
                 isPlaying.set(true);
             }
+        }
+    }
+
+    public void forcePlay(){
+        if (getMediaPlayer() != null){
+            getMediaPlayer().play();
+            isPlaying.set(true);
+        }
+    }
+
+    public void forcePause(){
+        if (getMediaPlayer() != null){
+            getMediaPlayer().pause();
+            isPlaying.set(false);
         }
     }
 
@@ -154,16 +187,6 @@ public class DataModel {
         Media oldMedia = getCurrentMediaFile();
         FXCollections.sort(mediaQueue, Comparator.comparing(Media::getSource));
         setCurrentMediaIndex(mediaQueue.indexOf(oldMedia));
-    }
-
-    public void initModel(){
-        mediaQueue.add(new Media(new File("D:/Anime/Fire Force/Enen no Shouboutai Episode 03.mp4").toURI().toString()));
-        mediaQueue.add(new Media(new File("D:/Anime/Jahy-sama Will NOT Be Defeated/Jahy-sama wa Kujikenai Episode 01.mp4").toURI().toString()));
-        mediaQueue.add(new Media("https://www.kiv.zcu.cz/~herout/vyuka/oop/video/oop-04.mp4"));
-        mediaQueue.add(new Media(new File("D:/Anime/Happy Sugar Life/Happy Sugar Life Episode 02.mp4").toURI().toString()));
-
-        resetMediaIndex();
-        setMediaPlayerBasedOnIndex();
     }
 
     public Media getCurrentMediaFile(){

@@ -1,7 +1,7 @@
 <component name="ArtifactManager">
-  <artifact type="jar" name="unnamed">
-    <output-path>$PROJECT_DIR$/out/artifacts/unnamed</output-path>
-    <root id="archive" name="unnamed.jar">
+  <artifact type="jar" name="UUR_Semestralka">
+    <output-path>$PROJECT_DIR$/out/artifacts/UUR_Semestralka</output-path>
+    <root id="archive" name="UUR_Semestralka.jar">
       <element id="directory" name="src">
         <element id="module-source" name="UUR_05" />
       </element>

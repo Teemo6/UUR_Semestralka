@@ -1,4 +1,3 @@
-import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -13,6 +12,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
+// Případné rozšíření :)
 public class LoaderStage {
     private static final LoaderStage INSTANCE = new LoaderStage();
 

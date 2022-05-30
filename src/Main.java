@@ -18,11 +18,13 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.scene.shape.SVGPath;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 import java.io.File;
+import java.util.ArrayList;
 
 public class Main extends Application {
 
@@ -72,8 +74,9 @@ public class Main extends Application {
     // Stages
     private AppearanceStage appearanceStage = AppearanceStage.getInstance();
     private TimerStage timerStage = TimerStage.getInstance();
-    private LoaderStage loaderStage = LoaderStage.getInstance();
     private AboutStage aboutStage = AboutStage.getInstance();
+
+    //private LoaderStage loaderStage = LoaderStage.getInstance();
 
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
@@ -89,6 +92,22 @@ public class Main extends Application {
     private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
     // tohle omylem nikdo nenakliká, když jo, rozbije si fullscreen :)
     private final KeyCombination unrealCombo = new KeyCodeCombination(KeyCode.UNDERSCORE, KeyCombination.CONTROL_DOWN, KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN, KeyCombination.ALT_DOWN, KeyCombination.SHORTCUT_DOWN);
+
+    public void init(){
+        ControlsTimer.initTimer(dataModel);
+
+        currentMediaPlayer.bind(dataModel.mediaPlayerProperty());
+
+        soundSlider.maxProperty().set(100);
+        soundSlider.valueProperty().bindBidirectional(playerVolume);
+        soundLabel.textProperty().bind(Bindings.createStringBinding(() -> String.format("%d%%", playerVolume.get()), playerVolume));
+
+        // Binding MediaPlayer
+        currentMediaPlayer.addListener((obs, oldVal, newVal) -> updateBinding(newVal));
+
+        //dataModel.initModel();
+    }
+
 
     public void updateBinding(MediaPlayer newPlayer){
         timeSlider.maxProperty().unbind();
@@ -143,23 +162,12 @@ public class Main extends Application {
         newPlayer.volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume));
     }
 
-    public void init(){
-        currentMediaPlayer.bind(dataModel.mediaPlayerProperty());
-
-        soundSlider.maxProperty().set(100);
-        soundSlider.valueProperty().bindBidirectional(playerVolume);
-        soundLabel.textProperty().bind(Bindings.createStringBinding(() -> String.format("%d%%", playerVolume.get()), playerVolume));
-
-        // Binding MediaPlayer
-        currentMediaPlayer.addListener((obs, oldVal, newVal) -> updateBinding(newVal));
-
-        dataModel.initModel();
-    }
 
     @Override
     public void start(Stage stage){
         Parent parentMain = getRootPane();
         parentMain.getStylesheets().addAll("resources/stylesheet.css");
+
         ControlsCSS.setParentMain(parentMain);
         ControlsCSS.parseCSSFile();
         ControlsCSS.refreshCSS();
@@ -168,7 +176,7 @@ public class Main extends Application {
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) overwriteQueueWithFolder();
-            if (openURLCombo.match(e)) loaderStage.createLoaderStage();
+            // if (openURLCombo.match(e)) loaderStage.createLoaderStage();
             if (playPauseCombo.match(e)) dataModel.playOrPause();
             if (playForwardCombo.match(e)) dataModel.moveTime(SEEK_TIME);
             if (playBackwardCombo.match(e)) dataModel.moveTime(-SEEK_TIME);
@@ -378,10 +386,13 @@ public class Main extends Application {
         openFolder.setAccelerator(openFolderCombo);
         openFolder.setOnAction(e -> overwriteQueueWithFolder());
 
+        /*
         MenuItem openURL = new MenuItem("Otevřít URL");
         openURL.setAccelerator(openURLCombo);
         openURL.setOnAction(e -> loaderStage.createLoaderStage());
-        openMenu.getItems().addAll(openFile, openFolder, openURL);
+        */
+        openMenu.getItems().addAll(openFile, openFolder);
+
 
         Menu playMenu = new Menu("Přehrávání");
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
@@ -416,11 +427,9 @@ public class Main extends Application {
 
         Menu playlistMenu = new Menu("Seznam");
         MenuItem playlistAdd = new MenuItem("Přidat do seznamu");
-        playlistAdd.setAccelerator(playPauseCombo);
         playlistAdd.setOnAction(e -> dataModel.playOrPause());
 
         MenuItem playlistRemove = new MenuItem("Odebrat ze seznamu");
-        playlistRemove.setAccelerator(playForwardCombo);
         playlistRemove.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
 
         MenuItem playlistPrevious = new MenuItem("Předchozí stopa");
@@ -501,17 +510,22 @@ public class Main extends Application {
     }
 
     public void overwriteQueueWithFolder(){
-        FileChooser fc = new FileChooser();
-        File file = fc.showOpenDialog(null);
+        DirectoryChooser dc = new DirectoryChooser();
+        File directory = dc.showDialog(null);
 
-        if(file != null){
-            try{
-                dataModel.overwriteQueueWithFile(file);
-            } catch(Exception e) {
+        if(directory != null){
+            ArrayList<File> unloaded = dataModel.overwriteQueueWithFolder(directory.listFiles());
+
+            if(unloaded.size() > 0) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Otevřít soubor");
+                alert.setTitle("Otevřít složku");
                 alert.setHeaderText("Nepodporovaný formát");
-                alert.setContentText("Zvolte jiný typ souboru.");
+
+                StringBuilder content = new StringBuilder("Nepovedlo se načíst tyto soubory:");
+                for(File f : unloaded){
+                    content.append("\n").append(f.getName());
+                }
+                alert.setContentText(content.toString());
                 alert.showAndWait();
             }
         }
