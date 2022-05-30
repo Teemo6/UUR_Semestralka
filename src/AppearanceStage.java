@@ -5,14 +5,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
-
 import java.io.File;
 import java.io.FileWriter;
 
@@ -27,8 +27,8 @@ public class AppearanceStage {
     private Stage appearanceStage;
     private Scene appearanceScene;
 
-    private ObjectProperty<Color> mainColorPreference = new SimpleObjectProperty<>();
-    private BooleanProperty darkModePreference = new SimpleBooleanProperty();
+    private ObjectProperty<Color> mainColorSelected = new SimpleObjectProperty<>();
+    private BooleanProperty darkModeSelected = new SimpleBooleanProperty();
 
     public static AppearanceStage getInstance(){
         return INSTANCE;
@@ -54,11 +54,11 @@ public class AppearanceStage {
         appearanceStage.setResizable(false);
         appearanceStage.show();
 
-        mainColorPreference.set(ControlsCSS.getPreviewColor());
-        ControlsCSS.mainColorProperty().bind(mainColorPreference);
+        appearanceStage.setOnCloseRequest(e -> closeRequest());
 
-        darkModePreference.set(ControlsCSS.getPreviewMode());
-        ControlsCSS.darkModeProperty().bind(darkModePreference);
+        setMainColorSelected(ControlsCSS.getMainColor());
+        setDarkModeSelected(ControlsCSS.getDarkMode());
+
     }
 
     private Parent getAppearancePane() {
@@ -66,17 +66,17 @@ public class AppearanceStage {
 
         Label colorLabel = new Label("Hlavní barva");
         ColorPicker colorPicker = new ColorPicker();
-        mainColorPreference.bindBidirectional(colorPicker.valueProperty());
+        mainColorSelected.bindBidirectional(colorPicker.valueProperty());
 
         Label modeLabel = new Label("Tmavý režim");
         CheckBox modeBox = new CheckBox();
-        modeBox.selectedProperty().bindBidirectional(darkModePreference);
+        darkModeSelected.bindBidirectional(modeBox.selectedProperty());
 
         HBox buttonWrapper = new HBox();
         Button btnConfirm = new Button("Použít");
         btnConfirm.setOnAction(e -> overwriteFile());
         Button btnCancel = new Button("Zavřít");
-        btnCancel.setOnAction(e -> appearanceStage.close());
+        btnCancel.setOnAction(e -> closeRequest());
 
         colorGrid.add(colorLabel, 0, 0);
         colorGrid.add(colorPicker, 1, 0);
@@ -100,13 +100,16 @@ public class AppearanceStage {
 
     public void overwriteFile(){
         try {
+            ControlsCSS.setMainColor(getMainColorSelected());
+            ControlsCSS.setDarkMode(getDarkModeSelected());
+
             FileWriter myWriter = new FileWriter("src" + File.separator + "resources" + File.separator + "customColor.css");
 
             StringBuilder outputText = new StringBuilder(".root{-mainColor:");
             StringBuilder previewText = new StringBuilder("-mainColor:");
-            outputText.append(colorToHex(mainColorPreference.get()));
-            previewText.append(colorToHex(mainColorPreference.get()));
-            if(darkModePreference.get()){
+            outputText.append(colorToHex(getMainColorSelected()));
+            previewText.append(colorToHex(getMainColorSelected()));
+            if(getDarkModeSelected()){
                 outputText.append(";-primaryColor:#101010;-secondaryColor:#303030;-tertiaryColor:#A0A0A0}");
                 previewText.append(";-primaryColor:#101010;-secondaryColor:#303030;-tertiaryColor:#A0A0A0");
             } else {
@@ -134,27 +137,34 @@ public class AppearanceStage {
         return String.format("#%06X", (r + g + b));
     }
 
-    public boolean isDarkModePreference() {
-        return darkModePreference.get();
+    public void closeRequest(){
+        ControlsCSS.mainColorProperty().unbind();
+        ControlsCSS.darkModeProperty().unbind();
+
+        appearanceStage.close();
     }
 
-    public BooleanProperty darkModePreferenceProperty() {
-        return darkModePreference;
+    public Color getMainColorSelected() {
+        return mainColorSelected.get();
     }
 
-    public void setDarkModePreference(boolean darkModePreference) {
-        this.darkModePreference.set(darkModePreference);
+    public ObjectProperty<Color> mainColorSelectedProperty() {
+        return mainColorSelected;
     }
 
-    public Color getMainColorPreference() {
-        return mainColorPreference.get();
+    public void setMainColorSelected(Color mainColorSelected) {
+        this.mainColorSelected.set(mainColorSelected);
     }
 
-    public ObjectProperty<Color> mainColorPreferenceProperty() {
-        return mainColorPreference;
+    public boolean getDarkModeSelected() {
+        return darkModeSelected.get();
     }
 
-    public void setMainColorPreference(Color mainColorPreference) {
-        this.mainColorPreference.set(mainColorPreference);
+    public BooleanProperty darkModeSelectedProperty() {
+        return darkModeSelected;
+    }
+
+    public void setDarkModeSelected(boolean darkModeSelected) {
+        this.darkModeSelected.set(darkModeSelected);
     }
 }

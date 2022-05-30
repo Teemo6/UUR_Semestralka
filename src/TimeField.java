@@ -27,8 +27,8 @@ public class TimeField extends HBox{
         value2.bind(time2.textProperty());
         value3.bind(time3.textProperty());
 
-        String regexHours = "(2?[0-3]?)|([0-1][0-9]?)";
-        String regexOther = "(0?[0-9]?)|([1-5][0-9]?)";
+        String regexHours = "(2?[0-3]?)|([01]?[0-9]?)";
+        String regexOther = "([0-5][0-9]?)";
         Pattern patternHours = Pattern.compile(regexHours);
         Pattern patternOther = Pattern.compile(regexOther);
 

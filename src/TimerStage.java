@@ -91,19 +91,25 @@ public class TimerStage {
 
         // Kdy se to udělá
         RadioButton timerWhen1Radio = new RadioButton();
-        Label timerWhen1Label = new Label("Po uplynutí času");
+        Label timerWhen1Label = new Label("Na konci stopy");
         timerWhen1Label.setFont(Font.font(13));
-        TimeField timerWhen1Timefield = new TimeField();
-        timerWhen1Timefield.setPrefWidth(84);
-        timerWhen1Timefield.setFieldPrefWidth();
         timerWhen1Radio.setSelected(true);
 
         RadioButton timerWhen2Radio = new RadioButton();
-        Label timerWhen2Label = new Label("V zadanám čase");
+        Label timerWhen2Label = new Label("Po uplynutí času");
         timerWhen2Label.setFont(Font.font(13));
         TimeField timerWhen2Timefield = new TimeField();
         timerWhen2Timefield.setPrefWidth(84);
         timerWhen2Timefield.setFieldPrefWidth();
+        timerWhen2Timefield.disableProperty().bind(timerWhen2Radio.selectedProperty().not());
+
+        RadioButton timerWhen3Radio = new RadioButton();
+        Label timerWhen3Label = new Label("V zadanám čase");
+        timerWhen3Label.setFont(Font.font(13));
+        TimeField timerWhen3Timefield = new TimeField();
+        timerWhen3Timefield.setPrefWidth(84);
+        timerWhen3Timefield.setFieldPrefWidth();
+        timerWhen3Timefield.disableProperty().bind(timerWhen3Radio.selectedProperty().not());
 
         HBox buttonWrapper = new HBox();
         Button btnConfirm = new Button("Ok");
@@ -121,16 +127,18 @@ public class TimerStage {
 
         timerGrid.add(timerWhen1Radio, 0, 4);
         timerGrid.add(timerWhen1Label, 1, 4);
-        timerGrid.add(timerWhen1Timefield, 2, 4);
         timerGrid.add(timerWhen2Radio, 0, 5);
         timerGrid.add(timerWhen2Label, 1, 5);
         timerGrid.add(timerWhen2Timefield, 2, 5);
+        timerGrid.add(timerWhen3Radio, 0, 6);
+        timerGrid.add(timerWhen3Label, 1, 6);
+        timerGrid.add(timerWhen3Timefield, 2, 6);
 
         ToggleGroup groupWhat = new ToggleGroup();
         groupWhat.getToggles().addAll(timerWhat1Radio, timerWhat2Radio, timerWhat3Radio);
 
         ToggleGroup groupWhen = new ToggleGroup();
-        groupWhen.getToggles().addAll(timerWhen1Radio, timerWhen2Radio);
+        groupWhen.getToggles().addAll(timerWhen1Radio, timerWhen2Radio, timerWhen3Radio);
 
         timerState.setPadding(new Insets(10, 0, 0, 10));
         timerState.setSpacing(5);
