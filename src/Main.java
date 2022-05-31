@@ -90,6 +90,7 @@ public class Main extends Application {
     private final KeyCombination playPreviousCombo = new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playNextCombo = new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination playFullscreenComboAlt = new KeyCodeCombination(KeyCode.ESCAPE);
     // tohle omylem nikdo nenakliká ...
     // když jo, rozbije si fullscreen :)
     private final KeyCombination unrealCombo = new KeyCodeCombination(KeyCode.UNDERSCORE, KeyCombination.CONTROL_DOWN, KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN, KeyCombination.ALT_DOWN, KeyCombination.SHORTCUT_DOWN);
@@ -205,6 +206,7 @@ public class Main extends Application {
             if (playPreviousCombo.match(e)) playPreviousMedia();
             if (playNextCombo.match(e)) playNextMedia();
             if (playFullscreenCombo.match(e)) switchFullscreen();
+            if (playFullscreenComboAlt.match(e) && rootStage.isFullScreen()) switchFullscreen();
             e.consume();
         });
 
@@ -215,7 +217,7 @@ public class Main extends Application {
         rootStage.setMinHeight(ROOT_WINDOW_MIN_HEIGHT);
         rootStage.getIcons().add(new Image("/resources/icon.png"));
         rootStage.setOnCloseRequest(e -> Platform.exit());
-        rootStage.setFullScreenExitHint("[Ctrl + F] ukončí režim celé obrazovky.");
+        rootStage.setFullScreenExitHint("[Ctrl + F] nebo [Escape] ukončí režim celé obrazovky.");
         rootStage.setFullScreenExitKeyCombination(unrealCombo);
         rootStage.show();
     }
