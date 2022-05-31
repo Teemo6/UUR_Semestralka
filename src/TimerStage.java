@@ -53,7 +53,7 @@ public class TimerStage {
 
         if(!ControlsCSS.isBroken){
             try {
-                timerScene.getStylesheets().add(ControlsCSS.pathToCSS);
+                parentTimer.getStylesheets().add(ControlsCSS.pathToCSS);
             } catch (Exception ignored){}
         } else {
             parentTimer.getStylesheets().add("resources/customColor.css");
