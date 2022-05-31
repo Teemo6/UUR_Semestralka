@@ -5,10 +5,16 @@ import javafx.css.Stylesheet;
 import javafx.css.converter.ColorConverter;
 import javafx.scene.Parent;
 import javafx.scene.paint.Color;
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ControlsCSS {
     public static ObjectProperty<Color> mainColor = new SimpleObjectProperty<>();
     public static BooleanProperty darkMode = new SimpleBooleanProperty();
+
+    public static boolean isBroken = false;
 
     private static Color previewColor;
     private static Boolean previewMode;
@@ -27,35 +33,39 @@ public class ControlsCSS {
         if(parentLoader != null) parentLoader.setStyle(styleCSS);
         if(parentTimer != null) parentTimer.setStyle(styleCSS);
         if(parentAbout != null) parentAbout.setStyle(styleCSS);
-
     }
 
-    public static Color parseColor(String colorName) {
+    public static Color parseColor(String colorName) throws Exception{
         CssParser parser = new CssParser();
         try {
-            Stylesheet cssFile = parser.parse(Main.class.getClassLoader().getResource("resources/stylesheet.css").toURI().toURL());
+            String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            Path parent = Paths.get(programPath).getParent();
+            String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
+
+            Stylesheet cssFile = parser.parse(new URL(colorCSS));
             Rule rootRule = cssFile.getRules().get(0);
             return rootRule.getDeclarations().stream()
                     .filter(c -> c.getProperty().equals(colorName))
                     .findFirst()
                     .map(m -> ColorConverter.getInstance().convert(m.getParsedValue(), null))
                     .get();
-        } catch (Exception ignore) {}
-        if(colorName.equals("-mainColor")){
-            return Color.ORANGE;
-        }
-        else {
-            return Color.valueOf("#101010");
+        } catch (Exception e) {
+            isBroken = true;
+            throw new Exception();
         }
     }
 
-    public static void parseCSSFile(){
-        setMainColor(parseColor("-maincolor"));
-        previewColor = getMainColor();
+    public static void parseCSSFile() throws Exception{
+        try {
+            setMainColor(parseColor("-maincolor"));
+            previewColor = getMainColor();
 
-        Color isDark = Color.valueOf("#101010");
-        setDarkMode(isDark.equals(parseColor("-primarycolor")));
-        previewMode = getDarkMode();
+            Color isDark = Color.valueOf("#101010");
+            setDarkMode(isDark.equals(parseColor("-primarycolor")));
+            previewMode = getDarkMode();
+        } catch(Exception e){
+            throw e;
+        }
     }
 
     public static void setStyleCSS(String style){

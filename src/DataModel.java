@@ -4,7 +4,6 @@ import javafx.collections.ObservableList;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +19,6 @@ public class DataModel {
         mediaPlayer.set(null);
         isPlaying.set(false);
         resetMediaIndex();
-
     }
 
     public void setMediaPlayerBasedOnIndex(){
@@ -37,6 +35,7 @@ public class DataModel {
                 setMediaPlayer(mp);
                 forcePlay();
             });
+            mp.setOnEndOfMedia(this::playNext);
         }
     }
 
@@ -71,7 +70,12 @@ public class DataModel {
     }
 
     public void addFileToQueue(File file, int position) throws Exception {
-        Media newMedia = new Media(file.toURI().toString());
+        Media newMedia;
+        try {
+            newMedia = new Media(file.toURI().toString());
+        } catch (Exception e){
+            throw new Exception("Nepovedlo se přečíst soubor");
+        }
 
         getFileQueue().add(position, newMedia);
     }

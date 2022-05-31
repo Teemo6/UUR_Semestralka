@@ -13,8 +13,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import java.io.File;
-import java.io.FileWriter;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class AppearanceStage {
     private static final AppearanceStage INSTANCE = new AppearanceStage();
@@ -38,10 +39,23 @@ public class AppearanceStage {
         if (appearanceStage != null && appearanceStage.isShowing()){
             appearanceStage.close();
         }
+
         Parent parentAppearance = getAppearancePane();
-        parentAppearance.getStylesheets().addAll("resources/stylesheet.css");
-        ControlsCSS.setParentAppearance(parentAppearance);
-        ControlsCSS.refreshCSS();
+        parentAppearance.getStylesheets().add("resources/stylesheet.css");
+
+        if(!ControlsCSS.isBroken) {
+            try {
+                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+                Path parent = Paths.get(programPath).getParent();
+                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
+
+                parentAppearance.getStylesheets().add(colorCSS);
+                ControlsCSS.setParentAppearance(parentAppearance);
+                ControlsCSS.refreshCSS();
+            } catch (Exception ignored) {}
+        } else {
+            parentAppearance.getStylesheets().add("resources/customColor.css");
+        }
 
         appearanceScene = new Scene(parentAppearance);
 
@@ -58,7 +72,6 @@ public class AppearanceStage {
 
         setMainColorSelected(ControlsCSS.getMainColor());
         setDarkModeSelected(ControlsCSS.getDarkMode());
-
     }
 
     private Parent getAppearancePane() {
@@ -103,7 +116,12 @@ public class AppearanceStage {
             ControlsCSS.setMainColor(getMainColorSelected());
             ControlsCSS.setDarkMode(getDarkModeSelected());
 
-            FileWriter myWriter = new FileWriter("src" + File.separator + "resources" + File.separator + "customColor.css");
+            String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            Path parent = Paths.get(programPath).getParent();
+            String colorCSS = parent.toString().replace("\\", "/") + "/customColor.css";
+
+            OutputStream path = new FileOutputStream(colorCSS);
+            OutputStreamWriter myWriter = new OutputStreamWriter(path);
 
             StringBuilder outputText = new StringBuilder(".root{-mainColor:");
             StringBuilder previewText = new StringBuilder("-mainColor:");

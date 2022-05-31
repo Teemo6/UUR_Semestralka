@@ -1,4 +1,3 @@
-import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -9,8 +8,9 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
-import java.io.FileInputStream;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class AboutStage {
     private static final AboutStage INSTANCE = new AboutStage();
@@ -29,10 +29,23 @@ public class AboutStage {
         if (aboutStage != null && aboutStage.isShowing()){
             aboutStage.close();
         }
+
         Parent parentAbout = getAboutPane();
-        parentAbout.getStylesheets().addAll("resources/stylesheet.css");
-        ControlsCSS.setParentAbout(parentAbout);
-        ControlsCSS.refreshCSS();
+        parentAbout.getStylesheets().add("resources/stylesheet.css");
+
+        if(!ControlsCSS.isBroken) {
+            try {
+                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+                Path parent = Paths.get(programPath).getParent();
+                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
+
+                parentAbout.getStylesheets().add(colorCSS);
+                ControlsCSS.setParentAbout(parentAbout);
+                ControlsCSS.refreshCSS();
+            } catch (Exception ignored) {}
+        } else {
+            parentAbout.getStylesheets().add("resources/customColor.css");
+        }
 
         aboutScene = new Scene(parentAbout);
 
@@ -41,7 +54,7 @@ public class AboutStage {
         aboutStage.setScene(aboutScene);
         aboutStage.setMinWidth(ABOUT_WINDOW_MIN_WIDTH);
         aboutStage.setMinHeight(ABOUT_WINDOW_MIN_HEIGHT);
-        aboutStage.getIcons().add(new Image("/resources/icon.png"));
+        aboutStage.getIcons().add(new Image("resources/icon.png"));
         aboutStage.setResizable(false);
         aboutStage.show();
     }
@@ -55,9 +68,11 @@ public class AboutStage {
         ImageView appIconView = new ImageView();
 
         try {
-            appIcon = new Image(new FileInputStream("src/resources/icon.png"));
+            appIcon = new Image(getClass().getResourceAsStream("resources/icon.png"));
             appIconView = new ImageView(appIcon);
-        } catch(Exception ignored) {}
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
 
         Label aboutName = new Label("Přehrávač médií - Semestrální práce UUR");
         Label aboutMe = new Label("Štěpán Faragula, 2022");

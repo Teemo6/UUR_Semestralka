@@ -24,6 +24,8 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Main extends Application {
@@ -76,12 +78,9 @@ public class Main extends Application {
     private TimerStage timerStage = TimerStage.getInstance();
     private AboutStage aboutStage = AboutStage.getInstance();
 
-    //private LoaderStage loaderStage = LoaderStage.getInstance();
-
     // KeyCodeCombination
     private final KeyCombination openFileCombo = new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN);
     private final KeyCombination openFolderCombo = new KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN);
-    private final KeyCombination openURLCombo = new KeyCodeCombination(KeyCode.U, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playPauseCombo = new KeyCodeCombination(KeyCode.SPACE);
     private final KeyCombination playForwardCombo = new KeyCodeCombination(KeyCode.RIGHT);
     private final KeyCombination playBackwardCombo = new KeyCodeCombination(KeyCode.LEFT);
@@ -90,10 +89,11 @@ public class Main extends Application {
     private final KeyCombination playPreviousCombo = new KeyCodeCombination(KeyCode.LEFT, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playNextCombo = new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.CONTROL_DOWN);
     private final KeyCombination playFullscreenCombo = new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN);
-    // tohle omylem nikdo nenakliká, když jo, rozbije si fullscreen :)
+    // tohle omylem nikdo nenakliká ...
+    // když jo, rozbije si fullscreen :)
     private final KeyCombination unrealCombo = new KeyCodeCombination(KeyCode.UNDERSCORE, KeyCombination.CONTROL_DOWN, KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN, KeyCombination.ALT_DOWN, KeyCombination.SHORTCUT_DOWN);
 
-    public void init(){
+    public void init() {
         ControlsTimer.initTimer(dataModel);
 
         currentMediaPlayer.bind(dataModel.mediaPlayerProperty());
@@ -101,22 +101,19 @@ public class Main extends Application {
         soundSlider.maxProperty().set(100);
         soundSlider.valueProperty().bindBidirectional(playerVolume);
         soundLabel.textProperty().bind(Bindings.createStringBinding(() -> String.format("%d%%", playerVolume.get()), playerVolume));
-
+        soundLabel.setStyle("-fx-font-size: 12.0 pt;");
         // Binding MediaPlayer
         currentMediaPlayer.addListener((obs, oldVal, newVal) -> updateBinding(newVal));
-
-        //dataModel.initModel();
     }
 
 
-    public void updateBinding(MediaPlayer newPlayer){
+    public void updateBinding(MediaPlayer newPlayer) {
         timeSlider.maxProperty().unbind();
         timeLabel.textProperty().unbind();
 
         timeSlider.setValue(0);
         timeLabel.setText("00:00:00/00:00:00");
 
-        // Pokud se neprehrava video, zastav se
         if (newPlayer == null) {
             return;
         }
@@ -128,7 +125,8 @@ public class Main extends Application {
             try {
                 Duration seekTo = Duration.seconds(timeSlider.getValue());
                 newPlayer.seek(seekTo);
-            } catch (Exception ignored){}
+            } catch (Exception ignored) {
+            }
         };
 
         timeSlider.valueProperty().addListener(timeSliderChangeListener);
@@ -138,7 +136,8 @@ public class Main extends Application {
                 timeSlider.valueProperty().removeListener(timeSliderChangeListener);
                 timeSlider.setValue(newPlayer.currentTimeProperty().get().toSeconds());
                 timeSlider.valueProperty().addListener(timeSliderChangeListener);
-            } catch (Exception ignored){}
+            } catch (Exception ignored) {
+            }
         });
 
         // Label videa
@@ -162,21 +161,37 @@ public class Main extends Application {
         newPlayer.volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume));
     }
 
-
     @Override
-    public void start(Stage stage){
+    public void start(Stage stage) {
         Parent parentMain = getRootPane();
-        parentMain.getStylesheets().addAll("resources/stylesheet.css");
+        parentMain.getStylesheets().add("resources/stylesheet.css");
 
-        ControlsCSS.setParentMain(parentMain);
-        ControlsCSS.parseCSSFile();
-        ControlsCSS.refreshCSS();
+        try {
+            String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+            Path parent = Paths.get(programPath).getParent();
+            String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
+
+            parentMain.getStylesheets().add(colorCSS);
+            ControlsCSS.setParentMain(parentMain);
+            ControlsCSS.parseCSSFile();
+            ControlsCSS.refreshCSS();
+        } catch (Exception e){
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Chybí CSS");
+            alert.setHeaderText("Nepodařilo se načíst CSS soubor");
+            alert.setContentText(
+                    "Přehrávač funguje, jenom má defaultní barvu rozhraní.\n" +
+                    "ALE!!! můžete vytvořit nový soubor!!!\n" +
+                    "(Vzhled -> Vytvořit)\n" +
+                    "Poté restartujte program, měli byste vidět zvolenou barvu.");
+            alert.showAndWait();
+            parentMain.getStylesheets().add("resources/customColor.css");
+        }
 
         rootScene = new Scene(parentMain);
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) overwriteQueueWithFolder();
-            // if (openURLCombo.match(e)) loaderStage.createLoaderStage();
             if (playPauseCombo.match(e)) dataModel.playOrPause();
             if (playForwardCombo.match(e)) dataModel.moveTime(SEEK_TIME);
             if (playBackwardCombo.match(e)) dataModel.moveTime(-SEEK_TIME);
@@ -200,7 +215,7 @@ public class Main extends Application {
         rootStage.show();
     }
 
-    private Parent getRootPane(){
+    private Parent getRootPane() {
         borderPane = new BorderPane();
 
         mediaPlayerPane = getMediaPlayerPane();
@@ -217,7 +232,7 @@ public class Main extends Application {
         return borderPane;
     }
 
-    private Node getMediaPlayerPane(){
+    private Node getMediaPlayerPane() {
         mediaWrapper = new Pane();
 
         mediaView = new MediaView(currentMediaPlayer.getValue());
@@ -247,15 +262,15 @@ public class Main extends Application {
 
         timeControl.getChildren().addAll(timeSlider, timeLabel);
         timeControl.getChildren().forEach(c -> HBox.setHgrow(c, Priority.ALWAYS));
-        timeControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(20));
+        timeControl.getChildren().forEach(n -> ((Region) n).setPrefHeight(20));
         timeControl.setSpacing(10);
 
         btnPlay = new ButtonSVG(new SVGPath());
         btnPlay.setOnAction(e -> dataModel.playOrPause());
         btnPlay.pathProperty().bind(Bindings.createObjectBinding(() -> {
-            if (dataModel.isPlayingProperty().get()) return IconSVG.PAUSE.getSVGPath();
-            else return IconSVG.PLAY_RIGHT.getSVGPath();
-        }, dataModel.isPlayingProperty()
+                    if (dataModel.isPlayingProperty().get()) return IconSVG.PAUSE.getSVGPath();
+                    else return IconSVG.PLAY_RIGHT.getSVGPath();
+                }, dataModel.isPlayingProperty()
         ));
 
         btnPrev = new ButtonSVG(IconSVG.ARROW_LEFT.getSVGPath());
@@ -283,8 +298,8 @@ public class Main extends Application {
         btnFullscreen.setOnAction(e -> switchFullscreen());
 
         playControl.getChildren().addAll(btnPlay, btnPrev, btnNext, btnPrevFile, btnNextFile, soundSlider, soundLabel, spacer, btnTimer, btnFullscreen);
-        playControl.getChildren().forEach(n -> ((Region)n).setPrefWidth(30));
-        playControl.getChildren().forEach(n -> ((Region)n).setPrefHeight(30));
+        playControl.getChildren().forEach(n -> ((Region) n).setPrefWidth(30));
+        playControl.getChildren().forEach(n -> ((Region) n).setPrefHeight(30));
         soundSlider.setPrefWidth(100);
         playControl.setSpacing(5);
         HBox.setHgrow(spacer, Priority.SOMETIMES);
@@ -318,7 +333,7 @@ public class Main extends Application {
             }
         }));
 
-        playlistIndexPlaying.addListener((b, o, n) ->         {
+        playlistIndexPlaying.addListener((b, o, n) -> {
             playlist.getFocusModel().focus(playlistIndexPlaying.get());
             playlist.scrollTo(playlistIndexPlaying.get());
         });
@@ -360,10 +375,10 @@ public class Main extends Application {
 
         playlistButtonWrapper.getChildren().addAll(playlistMoveWrapper, playlistManageWrapper, playlistOrderWrapper);
 
-        playlistButtonWrapper.getChildren().forEach(n -> ((HBox)n).setSpacing(5));
-        playlistButtonWrapper.getChildren().forEach(n -> ((HBox)n).setPadding(new Insets(5)));
-        playlistButtonWrapper.getChildren().forEach(n -> ((HBox)n).getChildren().forEach(h -> ((Region)h).setPrefHeight(25)));
-        playlistButtonWrapper.getChildren().forEach(n -> ((HBox)n).getChildren().forEach(h -> ((Region)h).setPrefWidth(25)));
+        playlistButtonWrapper.getChildren().forEach(n -> ((HBox) n).setSpacing(5));
+        playlistButtonWrapper.getChildren().forEach(n -> ((HBox) n).setPadding(new Insets(5)));
+        playlistButtonWrapper.getChildren().forEach(n -> ((HBox) n).getChildren().forEach(h -> ((Region) h).setPrefHeight(25)));
+        playlistButtonWrapper.getChildren().forEach(n -> ((HBox) n).getChildren().forEach(h -> ((Region) h).setPrefWidth(25)));
         playlistButtonWrapper.setSpacing(10);
 
         playlistWrapper.getChildren().addAll(playlist, playlistButtonWrapper);
@@ -382,17 +397,11 @@ public class Main extends Application {
         openFile.setAccelerator(openFileCombo);
         openFile.setOnAction(e -> overwriteQueueWithFile());
 
-        MenuItem openFolder= new MenuItem("Otevřít složku");
+        MenuItem openFolder = new MenuItem("Otevřít složku");
         openFolder.setAccelerator(openFolderCombo);
         openFolder.setOnAction(e -> overwriteQueueWithFolder());
 
-        /*
-        MenuItem openURL = new MenuItem("Otevřít URL");
-        openURL.setAccelerator(openURLCombo);
-        openURL.setOnAction(e -> loaderStage.createLoaderStage());
-        */
         openMenu.getItems().addAll(openFile, openFolder);
-
 
         Menu playMenu = new Menu("Přehrávání");
         MenuItem playPause = new MenuItem("Pustit / Zastavit");
@@ -421,16 +430,16 @@ public class Main extends Application {
 
         playMenu.getItems().addAll(
                 playPause, playForward, playBackward, new SeparatorMenuItem(),
-                playVolumeUp ,playVolumeDown, new SeparatorMenuItem(),
+                playVolumeUp, playVolumeDown, new SeparatorMenuItem(),
                 playFullscreen
         );
 
         Menu playlistMenu = new Menu("Seznam");
         MenuItem playlistAdd = new MenuItem("Přidat do seznamu");
-        playlistAdd.setOnAction(e -> dataModel.playOrPause());
+        playlistAdd.setOnAction(e -> addFileToQueue());
 
         MenuItem playlistRemove = new MenuItem("Odebrat ze seznamu");
-        playlistRemove.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
+        playlistRemove.setOnAction(e -> dataModel.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
 
         MenuItem playlistPrevious = new MenuItem("Předchozí stopa");
         playlistPrevious.setAccelerator(playPreviousCombo);
@@ -441,13 +450,13 @@ public class Main extends Application {
         playlistNext.setOnAction(e -> dataModel.playNext());
 
         MenuItem playlistSort = new MenuItem("Seřadit");
-        playlistSort.setOnAction(e -> dataModel.playNext());
+        playlistSort.setOnAction(e -> dataModel.sortQueue());
 
         MenuItem playlistShuffle = new MenuItem("Zamíchat");
         playlistShuffle.setOnAction(e -> playlistShuffle());
 
         playlistMenu.getItems().addAll(
-                playlistAdd ,playlistRemove, new SeparatorMenuItem(),
+                playlistAdd, playlistRemove, new SeparatorMenuItem(),
                 playlistPrevious, playlistNext, new SeparatorMenuItem(),
                 playlistSort, playlistShuffle
         );
@@ -465,7 +474,7 @@ public class Main extends Application {
         hideQueue = new ButtonMenu("");
         hideQueue.setOnAction(e -> hideQueue());
         hideQueue.textLabelProperty().bind(Bindings.createStringBinding(() -> {
-                    if(listVisiblePreference.get()) return "Skrýt";
+                    if (listVisiblePreference.get()) return "Skrýt";
                     else return "Zobrazit";
                 }, listVisiblePreference
         ));
@@ -486,20 +495,20 @@ public class Main extends Application {
         event.consume();
     }
 
-    private void handleDragDropped(DragEvent event){
+    private void handleDragDropped(DragEvent event) {
         Dragboard db = event.getDragboard();
         File file = db.getFiles().get(0);
         System.out.println(file.getName());
     }
 
-    public void overwriteQueueWithFile(){
+    public void overwriteQueueWithFile() {
         FileChooser fc = new FileChooser();
         File file = fc.showOpenDialog(null);
 
-        if(file != null){
-            try{
+        if (file != null) {
+            try {
                 dataModel.overwriteQueueWithFile(file);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Otevřít soubor");
                 alert.setHeaderText("Nepodporovaný formát");
@@ -509,20 +518,20 @@ public class Main extends Application {
         }
     }
 
-    public void overwriteQueueWithFolder(){
+    public void overwriteQueueWithFolder() {
         DirectoryChooser dc = new DirectoryChooser();
         File directory = dc.showDialog(null);
 
-        if(directory != null){
+        if (directory != null) {
             ArrayList<File> unloaded = dataModel.overwriteQueueWithFolder(directory.listFiles());
 
-            if(unloaded.size() > 0) {
+            if (unloaded.size() > 0) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Otevřít složku");
                 alert.setHeaderText("Nepodporovaný formát");
 
                 StringBuilder content = new StringBuilder("Nepovedlo se načíst tyto soubory:");
-                for(File f : unloaded){
+                for (File f : unloaded) {
                     content.append("\n").append(f.getName());
                 }
                 alert.setContentText(content.toString());
@@ -531,18 +540,23 @@ public class Main extends Application {
         }
     }
 
-    public void addFileToQueue(){
+    public void addFileToQueue() {
+        if(playlist.getItems().size() == 0){
+            overwriteQueueWithFile();
+            return;
+        }
+
         FileChooser fc = new FileChooser();
         File file = fc.showOpenDialog(null);
 
-        if(file != null){
-            try{
+        if (file != null) {
+            try {
                 int selected = playlist.getSelectionModel().getSelectedIndex() + 1;
-                if(selected == -1){
+                if (selected == -1) {
                     selected = 0;
                 }
                 dataModel.addFileToQueue(file, selected);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Otevřít soubor");
                 alert.setHeaderText("Nepodporovaný formát");
@@ -552,49 +566,49 @@ public class Main extends Application {
         }
     }
 
-    public void moveFileUp(){
+    public void moveFileUp() {
         int selected = playlist.getSelectionModel().getSelectedIndex();
-        if(selected != -1) {
+        if (selected != -1) {
             dataModel.moveFileLowerOnce(selected);
             playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
             playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
-    public void moveFileDown(){
+    public void moveFileDown() {
         int selected = playlist.getSelectionModel().getSelectedIndex();
-        if(selected != -1) {
+        if (selected != -1) {
             dataModel.moveFileHigherOnce(selected);
             playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
             playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
-    public void moveFileAllWayUp(){
+    public void moveFileAllWayUp() {
         int selected = playlist.getSelectionModel().getSelectedIndex();
-        if(selected != -1) {
+        if (selected != -1) {
             dataModel.moveFileToFirst(selected);
             playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
             playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
-    public void moveFileAllWayDown(){
+    public void moveFileAllWayDown() {
         int selected = playlist.getSelectionModel().getSelectedIndex();
-        if(selected != -1) {
+        if (selected != -1) {
             dataModel.moveFileToLast(selected);
             playlist.getSelectionModel().select(dataModel.getCurrentMediaIndex());
             playlist.scrollTo(dataModel.getCurrentMediaIndex());
         }
     }
 
-    public void switchFullscreen(){
-        if(rootStage.isFullScreen()) {
+    public void switchFullscreen() {
+        if (rootStage.isFullScreen()) {
             mediaWrapper.getStyleClass().remove("mediaBackground");
 
             borderPane.setBottom(getBottomControlBar());
             borderPane.setTop(getTopMenuBar());
-            if(listVisiblePreference.get()) {
+            if (listVisiblePreference.get()) {
                 borderPane.setRight(getPlaylist());
             }
             rootStage.setFullScreen(false);
@@ -609,8 +623,8 @@ public class Main extends Application {
         }
     }
 
-    public void hideQueue(){
-        if(borderPane.getRight() == null){
+    public void hideQueue() {
+        if (borderPane.getRight() == null) {
             borderPane.setRight(getPlaylist());
             listVisiblePreference.set(true);
         } else {
@@ -619,20 +633,20 @@ public class Main extends Application {
         }
     }
 
-    public void movePlayerVolume(int moveVolume){
+    public void movePlayerVolume(int moveVolume) {
         int currentVolume = playerVolume.get();
-        if(currentVolume + moveVolume > 100 ) {
+        if (currentVolume + moveVolume > 100) {
             playerVolume.set(100);
         } else {
             playerVolume.set(Math.max(currentVolume + moveVolume, 0));
         }
     }
 
-    public void playlistSort(){
+    public void playlistSort() {
         dataModel.sortQueue();
     }
 
-    public void playlistShuffle(){
+    public void playlistShuffle() {
         dataModel.shuffleQueue();
     }
 
@@ -640,10 +654,3 @@ public class Main extends Application {
         launch();
     }
 }
-
-/*
-//Now magic
-                    this.listDirectories.getSelectionModel().select(i);
-                    this.listDirectories.getFocusModel().focus(i);
-                    this.listDirectories.scrollTo(i);
- */

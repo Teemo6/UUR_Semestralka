@@ -14,6 +14,11 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Calendar;
 
 public class TimerStage {
@@ -49,10 +54,23 @@ public class TimerStage {
         if (timerStage != null && timerStage.isShowing()){
             timerStage.close();
         }
+
         Parent parentTimer = getTimerPane();
-        parentTimer.getStylesheets().addAll("resources/stylesheet.css");
-        ControlsCSS.setParentTimer(parentTimer);
-        ControlsCSS.refreshCSS();
+        parentTimer.getStylesheets().add("resources/stylesheet.css");
+
+        if(!ControlsCSS.isBroken){
+            try {
+                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+                Path parent = Paths.get(programPath).getParent();
+                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
+
+                parentTimer.getStylesheets().add(colorCSS);
+                ControlsCSS.setParentTimer(parentTimer);
+                ControlsCSS.refreshCSS();
+            } catch (Exception ignored){}
+        } else {
+            parentTimer.getStylesheets().add("resources/customColor.css");
+        }
 
         timerScene = new Scene(parentTimer);
 
@@ -78,11 +96,7 @@ public class TimerStage {
         timerStateLabel.setFont(Font.font(13));
         CheckBox timerStateCheckbox = new CheckBox();
         timerStateCheckbox.selectedProperty().bindBidirectional(timerRunning);
-        timerRunning.addListener((obs, oldVal, newVal) -> {
-            if(isTimerRunning()) timerGrid.setDisable(false);
-            else timerGrid.setDisable(true);
-
-        });
+        timerRunning.addListener((obs, oldVal, newVal) -> timerGrid.setDisable(!isTimerRunning()));
 
         timerState.getChildren().addAll(timerStateCheckbox, timerStateLabel);
 
