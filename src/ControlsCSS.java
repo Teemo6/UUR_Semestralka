@@ -15,6 +15,7 @@ public class ControlsCSS {
     public static BooleanProperty darkMode = new SimpleBooleanProperty();
 
     public static boolean isBroken = false;
+    public static String pathToCSS = "";
 
     private static Color previewColor;
     private static Boolean previewMode;
@@ -33,6 +34,10 @@ public class ControlsCSS {
         if(parentLoader != null) parentLoader.setStyle(styleCSS);
         if(parentTimer != null) parentTimer.setStyle(styleCSS);
         if(parentAbout != null) parentAbout.setStyle(styleCSS);
+    }
+
+    public static void refreshParent(Parent parent){
+        parent.setStyle(styleCSS);
     }
 
     public static Color parseColor(String colorName) throws Exception{
@@ -63,7 +68,12 @@ public class ControlsCSS {
             Color isDark = Color.valueOf("#101010");
             setDarkMode(isDark.equals(parseColor("-primarycolor")));
             previewMode = getDarkMode();
-        } catch(Exception e){
+        }catch(Exception e){
+            setMainColor(Color.valueOf("ORANGE"));
+            previewColor = getMainColor();
+
+            setDarkMode(true);
+            previewMode = getDarkMode();
             throw e;
         }
     }

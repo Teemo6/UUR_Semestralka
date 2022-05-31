@@ -1,4 +1,3 @@
-
 import javafx.beans.property.*;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -45,17 +44,14 @@ public class AppearanceStage {
 
         if(!ControlsCSS.isBroken) {
             try {
-                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-                Path parent = Paths.get(programPath).getParent();
-                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
-
-                parentAppearance.getStylesheets().add(colorCSS);
-                ControlsCSS.setParentAppearance(parentAppearance);
-                ControlsCSS.refreshCSS();
+                parentAppearance.getStylesheets().add(ControlsCSS.pathToCSS);
             } catch (Exception ignored) {}
         } else {
             parentAppearance.getStylesheets().add("resources/customColor.css");
         }
+
+        ControlsCSS.setParentAppearance(parentAppearance);
+        ControlsCSS.refreshCSS();
 
         appearanceScene = new Scene(parentAppearance);
 
@@ -141,10 +137,11 @@ public class AppearanceStage {
             ControlsCSS.refreshCSS();
         } catch (Exception e) {
             e.printStackTrace();
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Chyba při zápisu");
-            alert.setHeaderText("Nepodařilo se uložit vybranou barvu");
-            alert.showAndWait();
+            String header = "Chyba při zápisu";
+            String title = "Nepodařilo se uložit vybranou barvu";
+            String content = "Zvolte jiný typ souboru.";
+
+            ControlsAlert.showErrorAlert(header, title, content);
         }
     }
 

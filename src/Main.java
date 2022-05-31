@@ -2,6 +2,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.*;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -37,7 +38,8 @@ public class Main extends Application {
     final int VOLUME_CHANGE = 5;
     final boolean START_WITH_PLAYLIST_SHOWN = true;
 
-    IntegerProperty playerVolume = new SimpleIntegerProperty(100);
+    private IntegerProperty playerVolume = new SimpleIntegerProperty(100);
+    private DoubleBinding volumeBinding;
 
     private Stage rootStage;
     private Scene rootScene;
@@ -71,7 +73,6 @@ public class Main extends Application {
     // Playlist
     private ListView<Media> playlist;
     private IntegerProperty playlistIndexPlaying = new SimpleIntegerProperty();
-    private IntegerProperty playlistIndexSelected = new SimpleIntegerProperty();
 
     // Stages
     private AppearanceStage appearanceStage = AppearanceStage.getInstance();
@@ -97,6 +98,8 @@ public class Main extends Application {
         ControlsTimer.initTimer(dataModel);
 
         currentMediaPlayer.bind(dataModel.mediaPlayerProperty());
+
+        volumeBinding = Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume);
 
         soundSlider.maxProperty().set(100);
         soundSlider.valueProperty().bindBidirectional(playerVolume);
@@ -158,7 +161,7 @@ public class Main extends Application {
                 ));
 
         // Binding hlasitosti videa na hlasitost prehravace
-        newPlayer.volumeProperty().bind(Bindings.createDoubleBinding(() -> playerVolume.get() / 100.0, playerVolume));
+        newPlayer.volumeProperty().bind(volumeBinding);
     }
 
     @Override
@@ -171,34 +174,36 @@ public class Main extends Application {
             Path parent = Paths.get(programPath).getParent();
             String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
 
-            parentMain.getStylesheets().add(colorCSS);
-            ControlsCSS.setParentMain(parentMain);
             ControlsCSS.parseCSSFile();
-            ControlsCSS.refreshCSS();
+
+            parentMain.getStylesheets().add(colorCSS);
+            ControlsCSS.pathToCSS = colorCSS;
         } catch (Exception e){
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Chybí CSS");
-            alert.setHeaderText("Nepodařilo se načíst CSS soubor");
-            alert.setContentText(
-                    "Přehrávač funguje, jenom má defaultní barvu rozhraní.\n" +
-                    "ALE!!! můžete vytvořit nový soubor!!!\n" +
-                    "(Vzhled -> Vytvořit)\n" +
-                    "Poté restartujte program, měli byste vidět zvolenou barvu.");
-            alert.showAndWait();
+            System.out.println("------------------------------------------------------------------------------------------");
+            System.out.println("Nepodařilo se načíst CSS soubor");
+            System.out.println("Nastavuji defaultní barvu rozhraní");
+            System.out.println("Můžete zkusit nastavit vzhled (Vzhled -> Nastavit), tím by se měl vytvořit potřebný soubor");
+            System.out.println("Po restartu programu byste měli vidět vaši uloženou barvu");
+            System.out.println("Pokud máte nadále problémy se souborem, přehrávač bude fungovat pouze v defaultní barvě");
+            System.out.println("------------------------------------------------------------------------------------------");
+
             parentMain.getStylesheets().add("resources/customColor.css");
         }
+
+        ControlsCSS.setParentMain(parentMain);
+        ControlsCSS.refreshCSS();
 
         rootScene = new Scene(parentMain);
         rootScene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (openFileCombo.match(e)) overwriteQueueWithFile();
             if (openFolderCombo.match(e)) overwriteQueueWithFolder();
             if (playPauseCombo.match(e)) dataModel.playOrPause();
-            if (playForwardCombo.match(e)) dataModel.moveTime(SEEK_TIME);
-            if (playBackwardCombo.match(e)) dataModel.moveTime(-SEEK_TIME);
+            if (playForwardCombo.match(e)) moveTime(SEEK_TIME);
+            if (playBackwardCombo.match(e)) moveTime(-SEEK_TIME);
             if (playVolumeUpCombo.match(e)) movePlayerVolume(VOLUME_CHANGE);
             if (playVolumeDownCombo.match(e)) movePlayerVolume(-VOLUME_CHANGE);
-            if (playPreviousCombo.match(e)) dataModel.playPrevious();
-            if (playNextCombo.match(e)) dataModel.playNext();
+            if (playPreviousCombo.match(e)) playPreviousMedia();
+            if (playNextCombo.match(e)) playNextMedia();
             if (playFullscreenCombo.match(e)) switchFullscreen();
             e.consume();
         });
@@ -266,6 +271,7 @@ public class Main extends Application {
         timeControl.setSpacing(10);
 
         btnPlay = new ButtonSVG(new SVGPath());
+        btnPlay.setTooltip(new Tooltip("Pustit / zastavit"));
         btnPlay.setOnAction(e -> dataModel.playOrPause());
         btnPlay.pathProperty().bind(Bindings.createObjectBinding(() -> {
                     if (dataModel.isPlayingProperty().get()) return IconSVG.PAUSE.getSVGPath();
@@ -274,16 +280,20 @@ public class Main extends Application {
         ));
 
         btnPrev = new ButtonSVG(IconSVG.ARROW_LEFT.getSVGPath());
+        btnPrev.setTooltip(new Tooltip("Posunout dozadu"));
         btnPrev.setOnAction(e -> dataModel.moveTime(-SEEK_TIME));
 
         btnNext = new ButtonSVG(IconSVG.ARROW_RIGHT.getSVGPath());
+        btnNext.setTooltip(new Tooltip("Posunout dopředu"));
         btnNext.setOnAction(e -> dataModel.moveTime(SEEK_TIME));
 
         btnPrevFile = new ButtonSVG(IconSVG.FORWARD_LEFT.getSVGPath());
-        btnPrevFile.setOnAction(e -> dataModel.playPrevious());
+        btnPrevFile.setTooltip(new Tooltip("Předchozí stopa"));
+        btnPrevFile.setOnAction(e -> playPreviousMedia());
 
         btnNextFile = new ButtonSVG(IconSVG.FORWARD_RIGHT.getSVGPath());
-        btnNextFile.setOnAction(e -> dataModel.playNext());
+        btnNextFile.setTooltip(new Tooltip("Následující stopa"));
+        btnNextFile.setOnAction(e -> playNextMedia());
 
         soundLabel.setStyle("-fx-font-size: 12.0 pt;");
         spacer = new Region();
@@ -295,6 +305,7 @@ public class Main extends Application {
 
 
         btnFullscreen = new ButtonSVG(IconSVG.FULLSCREEN.getSVGPath());
+        btnFullscreen.setTooltip(new Tooltip("Celá obrazovka"));
         btnFullscreen.setOnAction(e -> switchFullscreen());
 
         playControl.getChildren().addAll(btnPlay, btnPrev, btnNext, btnPrevFile, btnNextFile, soundSlider, soundLabel, spacer, btnTimer, btnFullscreen);
@@ -333,6 +344,12 @@ public class Main extends Application {
             }
         }));
 
+        playlist.setOnMouseClicked(e -> {
+                if(e.getClickCount() == 2){
+                    playlistDoubleClick();
+                }
+            });
+
         playlistIndexPlaying.addListener((b, o, n) -> {
             playlist.getFocusModel().focus(playlistIndexPlaying.get());
             playlist.scrollTo(playlistIndexPlaying.get());
@@ -343,30 +360,38 @@ public class Main extends Application {
 
         HBox playlistMoveWrapper = new HBox();
         Button playlistMoveStart = new ButtonSVG(IconSVG.FORWARD_UP.getSVGPath());
+        playlistMoveStart.setTooltip(new Tooltip("Posunout na první pozici"));
         playlistMoveStart.setOnAction(e -> moveFileAllWayUp());
 
         Button playlistMoveUp = new ButtonSVG(IconSVG.PLAY_UP.getSVGPath());
+        playlistMoveUp.setTooltip(new Tooltip("Posunout výš"));
         playlistMoveUp.setOnAction(e -> moveFileUp());
 
         Button playlistMoveDown = new ButtonSVG(IconSVG.PLAY_DOWN.getSVGPath());
+        playlistMoveDown.setTooltip(new Tooltip("Posunout níž"));
         playlistMoveDown.setOnAction(e -> moveFileDown());
 
         Button playlistMoveEnd = new ButtonSVG(IconSVG.FORWARD_DOWN.getSVGPath());
+        playlistMoveEnd.setTooltip(new Tooltip("Posunout na poslední pozici"));
         playlistMoveEnd.setOnAction(e -> moveFileAllWayDown());
 
 
         HBox playlistManageWrapper = new HBox();
         Button playlistAdd = new ButtonSVG(IconSVG.PLUS.getSVGPath());
+        playlistAdd.setTooltip(new Tooltip("Přidat stopu"));
         playlistAdd.setOnAction(e -> addFileToQueue());
 
         Button playlistRemove = new ButtonSVG(IconSVG.MINUS.getSVGPath());
-        playlistRemove.setOnAction(e -> dataModel.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
+        playlistRemove.setTooltip(new Tooltip("Odebrat vybranou stopu"));
+        playlistRemove.setOnAction(e -> removeSelectedFileFromQueue());
 
         HBox playlistOrderWrapper = new HBox();
         Button playlistShuffle = new ButtonSVG(IconSVG.SHUFFLE.getSVGPath());
+        playlistShuffle.setTooltip(new Tooltip("Zamíchat"));
         playlistShuffle.setOnAction(e -> playlistShuffle());
 
         Button playlistSort = new ButtonSVG(IconSVG.SORT.getSVGPath());
+        playlistSort.setTooltip(new Tooltip("Seřadit"));
         playlistSort.setOnAction(e -> playlistSort());
 
         playlistMoveWrapper.getChildren().addAll(playlistMoveStart, playlistMoveUp, playlistMoveDown, playlistMoveEnd);
@@ -439,15 +464,15 @@ public class Main extends Application {
         playlistAdd.setOnAction(e -> addFileToQueue());
 
         MenuItem playlistRemove = new MenuItem("Odebrat ze seznamu");
-        playlistRemove.setOnAction(e -> dataModel.removeFromQueue(playlist.getSelectionModel().getSelectedItem()));
+        playlistRemove.setOnAction(e -> removeSelectedFileFromQueue());
 
         MenuItem playlistPrevious = new MenuItem("Předchozí stopa");
         playlistPrevious.setAccelerator(playPreviousCombo);
-        playlistPrevious.setOnAction(e -> dataModel.playPrevious());
+        playlistPrevious.setOnAction(e -> playPreviousMedia());
 
         MenuItem playlistNext = new MenuItem("Následující stopa");
         playlistNext.setAccelerator(playNextCombo);
-        playlistNext.setOnAction(e -> dataModel.playNext());
+        playlistNext.setOnAction(e -> playNextMedia());
 
         MenuItem playlistSort = new MenuItem("Seřadit");
         playlistSort.setOnAction(e -> dataModel.sortQueue());
@@ -501,19 +526,27 @@ public class Main extends Application {
         System.out.println(file.getName());
     }
 
+    public void moveTime(int seekTime){
+        currentMediaPlayer.get().volumeProperty().unbind();
+        currentMediaPlayer.get().volumeProperty().set(0);
+        dataModel.moveTime(seekTime);
+        currentMediaPlayer.get().volumeProperty().bind(volumeBinding);
+    }
+
     public void overwriteQueueWithFile() {
         FileChooser fc = new FileChooser();
-        File file = fc.showOpenDialog(null);
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Media files",  "*.mp3", "*.mp4", "*.wav"));
 
+        File file = fc.showOpenDialog(null);
         if (file != null) {
             try {
                 dataModel.overwriteQueueWithFile(file);
             } catch (Exception e) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Otevřít soubor");
-                alert.setHeaderText("Nepodporovaný formát");
-                alert.setContentText("Zvolte jiný typ souboru.");
-                alert.showAndWait();
+                String header = "Otevřít soubor";
+                String title = "Nepodporovaný formát";
+                String content = "Zvolte jiný typ souboru.";
+
+                ControlsAlert.showErrorAlert(header, title, content);
             }
         }
     }
@@ -526,16 +559,14 @@ public class Main extends Application {
             ArrayList<File> unloaded = dataModel.overwriteQueueWithFolder(directory.listFiles());
 
             if (unloaded.size() > 0) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Otevřít složku");
-                alert.setHeaderText("Nepodporovaný formát");
-
+                String title = "Otevřít složku";
+                String header = "Nepodporovaný formát";
                 StringBuilder content = new StringBuilder("Nepovedlo se načíst tyto soubory:");
                 for (File f : unloaded) {
                     content.append("\n").append(f.getName());
                 }
-                alert.setContentText(content.toString());
-                alert.showAndWait();
+
+                ControlsAlert.showWarningAlert(title, header, content.toString());
             }
         }
     }
@@ -551,18 +582,26 @@ public class Main extends Application {
 
         if (file != null) {
             try {
-                int selected = playlist.getSelectionModel().getSelectedIndex() + 1;
-                if (selected == -1) {
-                    selected = 0;
-                }
-                dataModel.addFileToQueue(file, selected);
+                dataModel.addFileToQueue(file, playlist.getItems().size());
             } catch (Exception e) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Otevřít soubor");
-                alert.setHeaderText("Nepodporovaný formát");
-                alert.setContentText("Zvolte jiný typ souboru.");
-                alert.showAndWait();
+                String header = "Otevřít soubor";
+                String title = "Nepodporovaný formát";
+                String content = "Zvolte jiný typ souboru.";
+
+                ControlsAlert.showErrorAlert(header, title, content);
             }
+        }
+    }
+
+    public void removeSelectedFileFromQueue(){
+        if(playlist.getSelectionModel().getSelectedIndex() != -1) {
+            dataModel.removeFromQueue(playlist.getSelectionModel().getSelectedItem());
+        } else {
+            String header = "Odebrat stopu";
+            String title = "Chyba při odebíraní";
+            String content = "Klikněte v seznamu stop na položku, kterou chcete odebrat.";
+
+            ControlsAlert.showErrorAlert(header, title, content);
         }
     }
 
@@ -639,6 +678,45 @@ public class Main extends Application {
             playerVolume.set(100);
         } else {
             playerVolume.set(Math.max(currentVolume + moveVolume, 0));
+        }
+    }
+
+    public void playlistDoubleClick(){
+        dataModel.setCurrentMediaIndex(playlist.getSelectionModel().getSelectedIndex());
+        try {
+            dataModel.setMediaPlayerBasedOnIndex();
+        } catch (Exception e){
+            dataModel.removeFromQueue(playlist.getSelectionModel().getSelectedItem());
+
+            String header = "Přehrávání stopy";
+            String title = "Soubor nenalezen";
+            String content = "Stopa byla smazána";
+
+            ControlsAlert.showWarningAlert(header, title, content);
+        }
+    }
+
+    public void playNextMedia(){
+        try{
+            dataModel.playNext();
+        } catch (Exception e){
+            String header = "Přehrávání stopy";
+            String title = "Soubor nenalezen";
+            String content = "Stopa byla smazána";
+
+            ControlsAlert.showWarningAlert(header, title, content);
+        }
+    }
+
+    public void playPreviousMedia(){
+        try{
+            dataModel.playPrevious();
+        } catch (Exception e){
+            String header = "Přehrávání stopy";
+            String title = "Soubor nenalezen";
+            String content = "Stopa byla smazána";
+
+            ControlsAlert.showWarningAlert(header, title, content);
         }
     }
 

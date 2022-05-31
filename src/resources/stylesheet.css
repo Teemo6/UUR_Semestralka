@@ -18,6 +18,10 @@
 	-fx-cursor: hand;
 }
 
+.tooltip{
+	-fx-text-fill: -mainColor;
+}
+
 .customButton{
     -fx-fill: -mainColor;
 }
@@ -220,4 +224,20 @@
 
 .color-picker .color-picker-label .text {
     -fx-text-color: -primaryColor;
+}
+
+.dialog-pane {
+    -fx-background-color: -primaryColor;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: -mainColor;
+}
+
+.dialog-pane:header .header-panel {
+    -fx-background-color: -secondaryColor;
+}
+
+.dialog-pane:header .header-panel .label {
+    -fx-font-size: 2em;
 }

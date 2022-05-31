@@ -8,9 +8,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class AboutStage {
     private static final AboutStage INSTANCE = new AboutStage();
@@ -35,17 +32,14 @@ public class AboutStage {
 
         if(!ControlsCSS.isBroken) {
             try {
-                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-                Path parent = Paths.get(programPath).getParent();
-                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
-
-                parentAbout.getStylesheets().add(colorCSS);
-                ControlsCSS.setParentAbout(parentAbout);
-                ControlsCSS.refreshCSS();
+                parentAbout.getStylesheets().add(ControlsCSS.pathToCSS);
             } catch (Exception ignored) {}
         } else {
             parentAbout.getStylesheets().add("resources/customColor.css");
         }
+
+        ControlsCSS.setParentAbout(parentAbout);
+        ControlsCSS.refreshCSS();
 
         aboutScene = new Scene(parentAbout);
 

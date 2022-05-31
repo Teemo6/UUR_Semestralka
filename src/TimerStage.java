@@ -13,12 +13,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Calendar;
 
 public class TimerStage {
@@ -44,7 +38,6 @@ public class TimerStage {
     private BooleanProperty timerRunning = new SimpleBooleanProperty();
     private TimerAction timerAction;
     private boolean timerCountdown;
-    private Duration timerDuration;
 
     public static TimerStage getInstance(){
         return INSTANCE;
@@ -60,17 +53,14 @@ public class TimerStage {
 
         if(!ControlsCSS.isBroken){
             try {
-                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-                Path parent = Paths.get(programPath).getParent();
-                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
-
-                parentTimer.getStylesheets().add(colorCSS);
-                ControlsCSS.setParentTimer(parentTimer);
-                ControlsCSS.refreshCSS();
+                timerScene.getStylesheets().add(ControlsCSS.pathToCSS);
             } catch (Exception ignored){}
         } else {
             parentTimer.getStylesheets().add("resources/customColor.css");
         }
+
+        ControlsCSS.setParentTimer(parentTimer);
+        ControlsCSS.refreshCSS();
 
         timerScene = new Scene(parentTimer);
 

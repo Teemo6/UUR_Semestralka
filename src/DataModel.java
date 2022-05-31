@@ -21,7 +21,7 @@ public class DataModel {
         resetMediaIndex();
     }
 
-    public void setMediaPlayerBasedOnIndex(){
+    public void setMediaPlayerBasedOnIndex() throws Exception{
         if(getMediaPlayer() != null){
             getMediaPlayer().stop();
             getMediaPlayer().dispose();
@@ -30,12 +30,20 @@ public class DataModel {
         if(mediaQueue.isEmpty()) {
             mediaPlayer.set(null);
         } else {
-            MediaPlayer mp = new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()));
-            mp.setOnReady(() -> {
-                setMediaPlayer(mp);
-                forcePlay();
-            });
-            mp.setOnEndOfMedia(this::playNext);
+            try {
+                MediaPlayer mp = new MediaPlayer(mediaQueue.get(currentMediaIndex.getValue()));
+                mp.setOnReady(() -> {
+                    setMediaPlayer(mp);
+                    forcePlay();
+                });
+                mp.setOnEndOfMedia(() -> {
+                    try {
+                        playNext();
+                    } catch (Exception ignored){}
+                });
+            } catch (Exception e){
+                throw e;
+            }
         }
     }
 
@@ -58,7 +66,11 @@ public class DataModel {
             getFileQueue().remove(toRemove);
             if(!mediaQueue.isEmpty()){
                 setCurrentMediaIndex(0);
-                setMediaPlayerBasedOnIndex();
+                try {
+                    setMediaPlayerBasedOnIndex();
+                } catch (Exception e){
+                    removeFromQueue(getCurrentMediaFile());
+                }
             } else {
                 setIsPlaying(false);
                 setCurrentMediaIndex(-1);
@@ -88,7 +100,11 @@ public class DataModel {
             resetMediaIndex();
 
             getFileQueue().add(newMedia);
-            setMediaPlayerBasedOnIndex();
+            try {
+                setMediaPlayerBasedOnIndex();
+            } catch (Exception e){
+                removeFromQueue(getCurrentMediaFile());
+            }
         } catch (Exception e){
             throw new Exception("Nepovedlo se přečíst soubor");
         }
@@ -109,7 +125,11 @@ public class DataModel {
                 unloaded.add(f);
             }
         }
-        setMediaPlayerBasedOnIndex();
+        try {
+            setMediaPlayerBasedOnIndex();
+        } catch (Exception e){
+            removeFromQueue(getCurrentMediaFile());
+        }
         return unloaded;
     }
 
@@ -145,17 +165,27 @@ public class DataModel {
         }
     }
 
-    public void playNext(){
+    public void playNext() throws Exception{
         if(getCurrentMediaIndex() + 1 <= getFileQueue().size() - 1){
             raiseCurrentMediaIndex();
-            setMediaPlayerBasedOnIndex();
+            try {
+                setMediaPlayerBasedOnIndex();
+            } catch (Exception e){
+                removeFromQueue(getCurrentMediaFile());
+                throw e;
+            }
         }
     }
 
-    public void playPrevious(){
+    public void playPrevious() throws Exception{
         if(getCurrentMediaIndex() - 1 >= 0){
             lowerCurrentMediaIndex();
-            setMediaPlayerBasedOnIndex();
+            try {
+                setMediaPlayerBasedOnIndex();
+            } catch (Exception e){
+                removeFromQueue(getCurrentMediaFile());
+                throw e;
+            }
         }
     }
 

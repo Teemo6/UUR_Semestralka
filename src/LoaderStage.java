@@ -11,9 +11,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 // Případné rozšíření :)
 public class LoaderStage {
@@ -39,17 +36,14 @@ public class LoaderStage {
 
         if(!ControlsCSS.isBroken) {
             try {
-                String programPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-                Path parent = Paths.get(programPath).getParent();
-                String colorCSS = "file:/" + parent.toString().replace("\\", "/") + "/customColor.css";
-
-                parentLoader.getStylesheets().add(colorCSS);
-                ControlsCSS.setParentLoader(parentLoader);
-                ControlsCSS.refreshCSS();
+                loaderScene.getStylesheets().add(ControlsCSS.pathToCSS);
             } catch (Exception ignored) {}
         } else {
             parentLoader.getStylesheets().add("resources/customColor.css");
         }
+
+        ControlsCSS.setParentLoader(parentLoader);
+        ControlsCSS.refreshCSS();
 
         loaderScene = new Scene(parentLoader);
 
